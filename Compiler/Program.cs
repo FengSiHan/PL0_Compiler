@@ -12,7 +12,7 @@ namespace Compiler
     {
         public static void Main(string[] arg)
         {
-            string code = File.ReadAllText(@"C:\Users\FSH\source\repos\Compiler\Compiler\test.pl0");
+            string code = File.ReadAllText($"../../test.pl0");
             Compiler compiler = new Compiler();
             compiler.Parse(code);
             compiler.PrintError();
