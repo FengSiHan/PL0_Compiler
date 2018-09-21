@@ -86,7 +86,7 @@ namespace Compiler
                     {
                         if (list[k] is int)
                         {
-                            Console.Write(list[k]);
+                            Console.Write($"t{list[k]}");
                         }
                         else if (list[k] is QuadrupleNode)
                         {
@@ -95,6 +95,10 @@ namespace Compiler
                             {
                                 Console.Write(t.Value);
                             }
+                        }
+                        else
+                        {
+                            Console.Write(list[k]);
                         }
                         if (k != list.Count - 1)
                         {

@@ -5,6 +5,7 @@ while k <> d
 do
 begin
 	i := i + 1;
-	k := i * 2
+	k := i * 2 + 5;
+	write(k)
 	end
 end.
