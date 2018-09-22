@@ -127,8 +127,10 @@ namespace Compiler
             internal int Counter;
             internal DAGNode Node;
             internal int Addr;
-            internal Invariant(List<DAGNode> host, int addr, DAGNode node, int offset)
+            internal Block Loc;
+            internal Invariant(Block block, List<DAGNode> host, int addr, DAGNode node, int offset)
             {
+                Loc = block;
                 Offset = offset;
                 Host = host;
                 Counter = 1;
@@ -147,23 +149,35 @@ namespace Compiler
                     Coefficient = c;
                 }
             }
+            internal struct InitPair
+            {
+                internal DAGNode Value;
+                internal DAGType Operation;
+                internal InitPair(DAGNode node, DAGType op)
+                {
+                    Operation = op;
+                    Value = node;
+                }
+            }
 
 
             internal DAGNode OriginNode;
             internal List<DAGNode> Host;
+            internal Block Loc;
             internal int Offset;//变量的偏移量
             internal int Increase;//增量
-            internal int Init;//初始值
+            internal List<InitPair> Init;//初始值
             internal int Addr;
             internal List<Pair> BaseInductionList;//含有的归纳表达式列表,以及系数
-            internal Triple(List<DAGNode> host, int addr, DAGNode originNode, int offset, int incr)
+            internal Triple(Block block, List<DAGNode> host, int addr, DAGNode originNode, int offset, int incr)
             {
+                Loc = block;
                 OriginNode = originNode;
                 Host = host;
                 Offset = offset;
                 Increase = incr;
                 BaseInductionList = new List<Pair>();
-                Init = 0;
+                Init = new List<InitPair>();
                 Addr = addr;
             }
             internal void ChangeStep(int incr)
@@ -174,9 +188,13 @@ namespace Compiler
             {
                 BaseInductionList.Add(new Pair(offset, c));
             }
-            internal void ChangeInit(int value)
+            internal void ChangeInit(DAGNode value, DAGType op)
             {
-                Init += value;
+                if (op != DAGType.Add && op != DAGType.Sub)
+                {
+                    throw new Exception();
+                }
+                Init.Add(new InitPair(value, op));
             }
         }
 
@@ -184,12 +202,14 @@ namespace Compiler
         {
             internal List<DAGNode> Host;
             internal int Offset;//变量在变量表中的偏移量
-            internal DAGNode Incr;
+            internal int Incr;
             internal DAGNode Node;//所在赋值节点
             internal DAGType Operator;
             internal int Addr;//在Host中的地址(偏移量)
-            internal InductionVar(List<DAGNode> host, int addr, DAGNode node, int offset, DAGNode incr, DAGType op)
+            internal Block Loc;
+            internal InductionVar(Block block, List<DAGNode> host, int addr, DAGNode node, int offset, int incr, DAGType op)
             {
+                Loc = block;
                 Host = host;
                 Offset = offset;
                 Incr = incr;
@@ -428,13 +448,15 @@ namespace Compiler
                                             Right.CurrentValue.Add(Result);
                                             status = -1;
                                             break;
-                                        case 2:
-                                            CheckConstReference(num);
-                                            node.Left = value;
-                                            node.Right = value;
-                                            node.Type = DAGType.Add;
-                                            status = 1;
-                                            break;
+                                        /*Because i * 2 ->i + i will affect loop optimization
+                                    case 2:
+                                        CheckConstReference(num);
+                                        node.Left = value;
+                                        node.Right = value;
+                                        node.Type = DAGType.Add;
+                                        status = 1;
+                                        break;
+                                        */
                                         default:
                                             //由于不支持移位操作，暂时搁置
                                             break;
@@ -773,7 +795,7 @@ namespace Compiler
                     CreateLoopPreHeader(i);
                 }
             }
-            
+
             //所有没有被contained的都是最外层自然循环，对其递归优化
             foreach (var i in Loops)
             {
@@ -948,7 +970,7 @@ namespace Compiler
                                 {
                                     if (j.Right.Right.Type == DAGType.Var && j.Right.Right.Offset == j.Left.Offset)
                                     {
-                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(DAG, k, j, j.Left.Offset, j.Right.Left, j.Type));
+                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, (int)j.Right.Left.Value, j.Type));
                                         DectectedInductionVar[j.Left.Offset] = true;
                                     }
                                 }
@@ -956,7 +978,7 @@ namespace Compiler
                                 {
                                     if (j.Right.Left.Type == DAGType.Var && j.Right.Left.Offset == j.Left.Offset)
                                     {
-                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(DAG, k, j, j.Left.Offset, j.Right.Right, j.Type));
+                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, (int)j.Right.Right.Value, j.Type));
                                         DectectedInductionVar[j.Left.Offset] = true;
                                     }
                                 }
@@ -990,9 +1012,10 @@ namespace Compiler
                         int target = k.Offset;
                         bool isInduction = true;
                         //这里只处理乘法
-                        Triple induction = new Triple(k.Host, k.Addr, k.Node, target, 0);
+                        Triple induction = new Triple(k.Loc, k.Host, k.Addr, k.Node, target, 0);
                         stack.Clear();
                         stack.Push(k.Node.Right);
+                        //递归解析不变式
                         while (stack.Count != 0 && isInduction)
                         {
                             //每次处理掉top的左节点，那么右节点就是一个表达式，继续入栈
@@ -1001,6 +1024,7 @@ namespace Compiler
                             top = GetValue(top);
                             if (top.Type == DAGType.Num)
                             {
+                                induction.ChangeInit(top, lastOP);
                                 continue;
                             }
                             else if (top.Type == DAGType.Var)
@@ -1008,22 +1032,81 @@ namespace Compiler
                                 if (baseInductionVar.ContainsKey(top.Offset) == false)
                                 {
                                     //在当前块不能存在对该变量的赋值，不然拉闸
-                                    foreach (var node in k.Host)
+                                    foreach (var b in loop.InnerBlock)
                                     {
-                                        if (node.Type == DAGType.Assign && node.Left.Offset == top.Offset)
+                                        foreach (var node in Blocks[b].DAG)
                                         {
-                                            //存在赋值，拉闸
-                                            //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
-                                            isInduction = false;
-                                            break;
+                                            if (node.Type == DAGType.Assign && node.Left.Offset == top.Offset)
+                                            {
+                                                //存在赋值，拉闸
+                                                //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
+                                                isInduction = false;
+                                                break;
+                                            }
                                         }
+                                    }
+                                    if (isInduction)
+                                    {
+                                        //This var would be part of init expr
+                                        induction.ChangeInit(top, lastOP);
                                     }
                                 }
                                 else
                                 {
-                                    int incr = (int)baseInductionVar[top.Offset].Incr.Value;
+                                    int incr = (int)baseInductionVar[top.Offset].Incr;
                                     induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
-                                    induction.AddBaseInduction(top.Left.Offset, lastOP == DAGType.Add ? 1 : -1);
+                                    induction.AddBaseInduction(top.Offset, lastOP == DAGType.Add ? 1 : -1);
+                                }
+                            }
+                            else if (top.Type == DAGType.Mul)
+                            {
+                                DAGNode var, num;
+                                if (top.Left.Type == DAGType.Num && top.Right.Type == DAGType.Var)
+                                {
+                                    var = top.Right;
+                                    num = top.Left;
+                                }
+                                else if (top.Right.Type == DAGType.Num && top.Left.Type == DAGType.Var)
+                                {
+                                    var = top.Left;
+                                    num = top.Right;
+                                }
+                                else
+                                {
+                                    isInduction = false;
+                                    break;
+                                }
+                                if (baseInductionVar.ContainsKey(var.Offset) == false)
+                                {
+                                    //在当前块不能存在对该变量的赋值，不然拉闸
+                                    foreach (var b in loop.InnerBlock)
+                                    {
+                                        foreach (var j in Blocks[b].DAG)
+                                        {
+                                            if (j.Type == DAGType.Assign && j.Left.Offset == var.Offset)
+                                            {
+                                                //存在赋值，拉闸
+                                                //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
+                                                isInduction = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (isInduction)
+                                    {
+                                        DAGNode node = new DAGNode(DAGType.Mul, GetSN(), null)
+                                        {
+                                            Left = num,
+                                            Right = var
+                                        };
+                                        induction.ChangeInit(node, lastOP);
+                                    }
+                                }
+                                else
+                                {
+                                    int incr = (int)(baseInductionVar[var.Offset].Incr * num.Value);
+                                    induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
+                                    induction.AddBaseInduction(var.Offset, lastOP == DAGType.Add ? (int)num.Value : -1 * (int)num.Value);
                                 }
                             }
                             else if (top.Left.Type == DAGType.Var)
@@ -1031,20 +1114,27 @@ namespace Compiler
                                 if (baseInductionVar.ContainsKey(top.Left.Offset) == false)
                                 {
                                     //在当前块不能存在对该变量的赋值，不然拉闸
-                                    foreach (var node in k.Host)
+                                    foreach (var b in loop.InnerBlock)
                                     {
-                                        if (node.Type == DAGType.Assign && node.Left.Offset == top.Left.Offset)
+                                        foreach (var node in Blocks[b].DAG)
                                         {
-                                            //存在赋值，拉闸
-                                            //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
-                                            isInduction = false;
-                                            break;
+                                            if (node.Type == DAGType.Assign && node.Left.Offset == top.Left.Offset)
+                                            {
+                                                //存在赋值，拉闸
+                                                //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
+                                                isInduction = false;
+                                                break;
+                                            }
                                         }
+                                    }
+                                    if (isInduction)
+                                    {
+                                        induction.ChangeInit(top.Left, lastOP);
                                     }
                                 }
                                 else
                                 {
-                                    int incr = (int)baseInductionVar[top.Left.Offset].Incr.Value;
+                                    int incr = (int)baseInductionVar[top.Left.Offset].Incr;
                                     induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
                                     induction.AddBaseInduction(top.Left.Offset, lastOP == DAGType.Add ? 1 : -1);
                                 }
@@ -1052,7 +1142,7 @@ namespace Compiler
                             else if (top.Left.Type == DAGType.Num)
                             {
                                 int init = (int)top.Left.Value;
-                                induction.ChangeInit(lastOP == DAGType.Add ? init : -init);
+                                induction.ChangeInit(top.Left, lastOP);
                             }
                             else if (top.Left.Type == DAGType.Mul)
                             {
@@ -1076,20 +1166,32 @@ namespace Compiler
                                 if (baseInductionVar.ContainsKey(var.Offset) == false)
                                 {
                                     //在当前块不能存在对该变量的赋值，不然拉闸
-                                    foreach (var j in k.Host)
+                                    foreach (var b in loop.InnerBlock)
                                     {
-                                        if (j.Type == DAGType.Assign && j.Left.Offset == var.Offset)
+                                        foreach (var j in Blocks[b].DAG)
                                         {
-                                            //存在赋值，拉闸
-                                            //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
-                                            isInduction = false;
-                                            break;
+                                            if (j.Type == DAGType.Assign && j.Left.Offset == var.Offset)
+                                            {
+                                                //存在赋值，拉闸
+                                                //如果是循环不变表达式则已经被外提，现在的就不可能是循环不变表达式
+                                                isInduction = false;
+                                                break;
+                                            }
                                         }
+                                    }
+                                    if (isInduction)
+                                    {
+                                        DAGNode mul = new DAGNode(DAGType.Mul, GetSN(), null)
+                                        {
+                                            Left = num,
+                                            Right = var
+                                        };
+                                        induction.ChangeInit(node, lastOP);
                                     }
                                 }
                                 else
                                 {
-                                    int incr = (int)(baseInductionVar[var.Offset].Incr.Value * num.Value);
+                                    int incr = (int)(baseInductionVar[var.Offset].Incr * num.Value);
                                     induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
                                     induction.AddBaseInduction(var.Offset, lastOP == DAGType.Add ? (int)num.Value : -1 * (int)num.Value);
                                 }
@@ -1102,7 +1204,7 @@ namespace Compiler
                             stack.Push(top.Right);
                             lastOP = top.Type;
                         }
-                        if (isInduction)
+                        if (isInduction && induction.BaseInductionList.Count != 0)
                         {
                             //更改节点，替换计算式为归纳表达式
                             loop.InductionTriple.Add(induction);
@@ -1112,15 +1214,19 @@ namespace Compiler
             }
             foreach (var i in loop.InductionTriple)
             {
-                i.OriginNode.Type = DAGType.Add;
+                //修改节点
                 DAGNode right = new DAGNode(DAGType.Add, GetSN(), null);
                 i.OriginNode.Right = right;
-                right.Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = i.OriginNode.Offset };
+                right.Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = i.OriginNode.Left.Offset };
                 right.Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = i.Increase };
 
+                //添加赋值
                 DAGNode node = new DAGNode(DAGType.Assign, GetSN(), null);
                 DAGNode left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = i.OriginNode.Left.Offset };
                 right = new DAGNode(DAGType.Add, GetSN(), null);
+                node.Left = left;
+
+                //当前next的节点的运算符又下一个表达式决定
                 var next = right;
                 Stack<Triple.Pair> s = new Stack<Triple.Pair>();
                 foreach (var j in i.BaseInductionList)
@@ -1128,14 +1234,10 @@ namespace Compiler
                     s.Push(j);
                 }
                 Triple.Pair k;
-                if (s.Count == 0)
-                {
-
-                }
-                else if (s.Count == 1)
+                if (s.Count == 1)
                 {
                     k = s.Pop();
-                    right = new DAGNode(DAGType.Mul, GetSN(), null)
+                    next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                     {
                         Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = k.Offset },
                         Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
@@ -1144,28 +1246,71 @@ namespace Compiler
                 else
                 {
                     k = s.Pop();
-                    right.Left = new DAGNode(DAGType.Mul, GetSN(), null)
+                    next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                     {
-                        Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = k.Offset },
+                        Left = GetLeft(i, k),
                         Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
                     };
-                    while (s.Count > 1)
+                    //Determine the order of two assigenments.
+                    var v = loop.BaseInductionVar[k.Offset];
+
+                    //i.Loc是k.Loc的前驱，是否有i.Loc.Index < k.Loc.Index,只需要保证递归顺序，即添加后继顺序
+                    DAGNode GetLeft(Triple triple, Triple.Pair p)
+                    {
+                        if (triple.Loc.Index == loop.BaseInductionVar[p.Offset].Loc.Index)
+                        {
+                            int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要加上步长
+                            if (res > 0)
+                            {
+                                DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
+                                {
+                                    Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
+                                    Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                                };
+                                return _left;
+                            }
+                            else
+                            {
+                                return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = k.Offset };
+                            }
+                        }
+                        else if (triple.Loc.Index < loop.BaseInductionVar[p.Offset].Loc.Index)
+                        {
+                            return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = k.Offset };
+                        }
+                        else
+                        {
+                            DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
+                            {
+                                Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
+                                Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                            };
+                            return _left;
+                        }
+                    }
+                    next.Type = DAGType.Add;
+                    while (s.Count != 0)
                     {
                         k = s.Pop();
+                        next.Type = DAGType.Add;
                         next = next.Right;
                         next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                         {
-                            Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = k.Offset },
+                            Left = GetLeft(i, k),
                             Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
                         };
                     }
-                    k = s.Pop();
-                    next.Right = new DAGNode(DAGType.Mul, GetSN(), null)
-                    {
-                        Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = k.Offset },
-                        Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
-                    };
                 }
+                for(int j = 0; j < i.Init.Count - 1; ++j)
+                {
+                    var t = i.Init[j];
+                    next.Type = t.Operation;
+                    next.Right = new DAGNode(DAGType.Add, GetSN(), i.Loc);
+                    next.Right.Left = t.Value;
+                    next = next.Right;
+                }
+                next.Type = i.Init[i.Init.Count - 1].Operation;
+                next.Right = i.Init[i.Init.Count - 1].Value;
                 loop.PrevHeader.DAG.Add(node);
             }
         }
@@ -1182,6 +1327,8 @@ namespace Compiler
 
             //累计赋值次数，key是offset
             GetAssignToDict(loop, dict);
+
+
             loop.PrevHeader.Index = GetSN();
             //此时所有赋值次数为1的已被筛选
             //确保左右运算节点未被赋值
@@ -1194,6 +1341,7 @@ namespace Compiler
                     continue;
                 }
                 stack.Clear();
+                //判读是否为循环不变式
                 var node = dict[i].Node.Right;
                 stack.Push(node);
                 bool ok = true;
@@ -1297,7 +1445,7 @@ namespace Compiler
                     {
                         if (dict.ContainsKey(node.Left.Offset) == false)
                         {
-                            dict.Add(node.Left.Offset, new Invariant(block.DAG, j, node, node.Left.Offset));
+                            dict.Add(node.Left.Offset, new Invariant(block, block.DAG, j, node, node.Left.Offset));
                         }
                         else
                         {
@@ -1315,7 +1463,7 @@ namespace Compiler
                 {
                     if (dict.ContainsKey(node.Left.Offset) == false)
                     {
-                        dict.Add(node.Left.Offset, new Invariant(loop.PrevHeader.DAG, -1, node, node.Left.Offset));
+                        dict.Add(node.Left.Offset, new Invariant(null, loop.PrevHeader.DAG, -1, node, node.Left.Offset));
                     }
                     else
                     {
@@ -1757,6 +1905,11 @@ namespace Compiler
 
         private void GenerateAutoGeneratedCode(DAGNode node)
         {
+            node = GetValue(node);
+            if (node.Type == DAGType.Num || node.Type == DAGType.Var)
+            {
+                return;
+            }
             GenerateAutoGeneratedCode(node.Right);
             if (node.Type == DAGType.Assign)
             {
