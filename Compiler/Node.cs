@@ -264,7 +264,8 @@ namespace Compiler
         Write,
         Read,
         Call,
-        Anonymous
+        Anonymous,
+        AutoTemp
     }
 
     public enum QuadrupleType

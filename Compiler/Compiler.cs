@@ -26,9 +26,9 @@ namespace Compiler
             LocateJumpNodeAndDetermineNodeOffset();//获取四元式后，回填跳转地址并且对每个节点赋于地址值
             Optimize optimize = new Optimize(CodeSeg, VarSeg, CodeEntrance);
             optimize.LocalOptimization();
-            optimize.LoopOptimization();
-            optimize.GlobalOptimization();//O(n^4警告)
-            optimize.GenerateCode();
+            //optimize.LoopOptimization();
+            //optimize.GlobalOptimization();//O(n^4警告)
+            CodeSeg = optimize.GenerateCode();
             PrintCode();
             //Optimize()
             //ReGenerateCode()
@@ -177,6 +177,10 @@ namespace Compiler
             return CodeEntrance;
         }
 
+        internal void ChangeCodeSeg(List<QuadrupleNode>list)
+        {
+            CodeSeg = list;
+        }
         private void Clear()
         {
             VarSeg.Clear();

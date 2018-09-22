@@ -1050,7 +1050,7 @@ namespace Compiler
                     var type = node?.Type;
                     if (type == null)
                     {
-                        ErrorMsg.Add($"Unknown Token '{i.Info}',it needs declaring", i.Location);
+                        ErrorMsg.Add($"Unknown Token '{i.Left.Info}',it needs declaring", i.Location);
                     }
                     else if (ExprType.Var == type)
                     {

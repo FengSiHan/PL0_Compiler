@@ -11,7 +11,7 @@ namespace Compiler
         {
             internal int Start, End;//[start,end]
             internal List<DAGNode> DAG;
-            internal List<Block> Prev; //从何处跳转而来
+            internal List<Block> Prev; //从何处跳转而来C:\Users\FSH\Source\Repos\PL0_Compiler\Compiler\Optimize.cs
             internal List<Block> Next; //该基本块结束后跳转至何处,这是条件跳转条件不成立时跳转的地址
             internal List<DAGNode> OutAvailableExpr;
             internal List<DAGNode> InAvailableExpr;
@@ -333,7 +333,7 @@ namespace Compiler
                             DAGNode node = new DAGNode(DAGType.Assign, GetSN(), block)
                             {
                                 Left = left,
-                                Right = right
+                                Right = GetValue(right)
                             };
                             Nodes.Add(node);
                             if (left.CurrentValue != null)
@@ -351,6 +351,7 @@ namespace Compiler
                             else if (right.Type == DAGType.Temp)
                             {
                                 left.CurrentValue = GetValue(right);
+                                right.Tags.Add(left);
                             }
                             else
                             {
@@ -823,19 +824,20 @@ namespace Compiler
             //如何从Loop重组为Block
 
         }
-        public void GenerateCode()
+        public List<QuadrupleNode> GenerateCode()
         {
             //优化的时候需要保证优化完成前的代码跳转指向块
             //产生代码时才能正确指向跳转地址
             //产生代码时每条代码的地址会发生变化，block记录的start也会随之而变
             CodeAddr = 0;
+            List<QuadrupleNode> Code = new List<QuadrupleNode>();
             List<Block> deleteList = new List<Block>();
             Dictionary<int, Block> dict = new Dictionary<int, Block>();
             Blocks.Sort((i, j) =>
             {
                 if (i.Start == j.Start)
                 {
-                    return i.Index.CompareTo(j.Index);
+                    return j.Index.CompareTo(i.Index);
                 }
                 return i.Start.CompareTo(j.Start);
             });
@@ -843,28 +845,32 @@ namespace Compiler
             {
                 if (dict.ContainsKey(i.Start))
                 {
-                    if (dict[i.Start].Index > i.Index)
+                    if (dict[i.Start].Addr > i.Addr)//假如有重复的key，说明是循环入口，以及自动声明的块，保证最先声明的块在最前面}
                     {
                         dict[i.Start] = i;
                     }
                 }
                 else
                 {
-                    dict.Add(i.Start, i);//假如有重复的key，说明是循环入口，以及自动声明的块，保证最先声明的块在最前面}
+                    dict.Add(i.Start, i);
                 }
             }
             foreach (var i in Blocks)
             {
-                DAG2Code(i, dict);
+                DAG2Code(i, dict, Code);
                 if (i.Start > i.End) //可能某个基本块直接被清空，删除
                 {
                     deleteList.Add(i);
                 }
-                else if (CodeSeg[i.End].Type == QuadrupleType.Return)
+                
+                else if (Code[i.Start].Type == QuadrupleType.Return)
                 {
                     deleteList.Add(i);
                 }
             }
+            CodeSeg = Code;
+
+            visited = new bool[Code.Count];
             foreach (var i in deleteList)
             {
                 Blocks.Remove(i);
@@ -877,6 +883,7 @@ namespace Compiler
                 }
             }
             CompressCodeSeg();
+            return CodeSeg;
         }
 
         private void CreateLoopPreHeader(NaturalLoop loop)
@@ -939,6 +946,13 @@ namespace Compiler
             foreach (var i in prev.JumpInsAddr)
             {
                 i.JumpAddr = prev;
+            }
+            foreach (var i in loop.InnerBlock)
+            {
+                if (Blocks[i].Start == loop.LoopEntrance)
+                {
+                    CodeSeg[loop.Edge.End.End].JumpAddr =Blocks[i];
+                }
             }
         }
         private void InductionOptimization(NaturalLoop loop)
@@ -1061,15 +1075,63 @@ namespace Compiler
                             else if (top.Type == DAGType.Mul)
                             {
                                 DAGNode var, num;
-                                if (top.Left.Type == DAGType.Num && top.Right.Type == DAGType.Var)
+                                if (top.Left.Type == DAGType.Num)
                                 {
-                                    var = top.Right;
                                     num = top.Left;
+                                    if (top.Right.Type == DAGType.Var)
+                                    {
+                                        var = top.Right;
+                                    }
+                                    else
+                                    {
+                                        DAGNode tmp = null;
+                                        foreach (var t in top.Right.Tags)
+                                        {
+                                            if (t.Type == DAGType.Var)
+                                            {
+                                                tmp = t;
+                                                break;
+                                            }
+                                        }
+                                        if (tmp == null)
+                                        {
+                                            isInduction = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            var = tmp;
+                                        }
+                                    }
                                 }
-                                else if (top.Right.Type == DAGType.Num && top.Left.Type == DAGType.Var)
+                                else if (top.Right.Type == DAGType.Num)
                                 {
-                                    var = top.Left;
                                     num = top.Right;
+                                    if (top.Left.Type == DAGType.Var)
+                                    {
+                                        var = top.Left;
+                                    }
+                                    else
+                                    {
+                                        DAGNode tmp = null;
+                                        foreach (var t in top.Left.Tags)
+                                        {
+                                            if (t.Type == DAGType.Var)
+                                            {
+                                                tmp = t;
+                                                break;
+                                            }
+                                        }
+                                        if (tmp == null)
+                                        {
+                                            isInduction = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            var = tmp;
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -1148,15 +1210,63 @@ namespace Compiler
                             {
                                 DAGNode var, num;
                                 DAGNode node = top.Left;
-                                if (node.Left.Type == DAGType.Num && node.Right.Type == DAGType.Var)
+                                if (node.Left.Type == DAGType.Num)
                                 {
-                                    var = node.Right;
                                     num = node.Left;
+                                    if (node.Right.Type == DAGType.Var)
+                                    {
+                                        var = node.Right;
+                                    }
+                                    else
+                                    {
+                                        DAGNode tmp = null;
+                                        foreach (var t in node.Right.Tags)
+                                        {
+                                            if (t.Type == DAGType.Var)
+                                            {
+                                                tmp = t;
+                                                break;
+                                            }
+                                        }
+                                        if (tmp == null)
+                                        {
+                                            isInduction = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            var = tmp;
+                                        }
+                                    }
                                 }
-                                else if (node.Right.Type == DAGType.Num && node.Left.Type == DAGType.Var)
+                                else if (node.Right.Type == DAGType.Num)
                                 {
-                                    var = node.Left;
                                     num = node.Right;
+                                    if (node.Left.Type == DAGType.Var)
+                                    {
+                                        var = node.Left;
+                                    }
+                                    else
+                                    {
+                                        DAGNode tmp = null;
+                                        foreach (var t in node.Left.Tags)
+                                        {
+                                            if (t.Type == DAGType.Var)
+                                            {
+                                                tmp = t;
+                                                break;
+                                            }
+                                        }
+                                        if (tmp == null)
+                                        {
+                                            isInduction = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            var = tmp;
+                                        }
+                                    }
                                 }
                                 else
                                 {
@@ -1216,7 +1326,17 @@ namespace Compiler
             {
                 //修改节点
                 DAGNode right = new DAGNode(DAGType.Add, GetSN(), null);
+                foreach (var t in i.OriginNode.Right.Tags)
+                {
+                    if (t.Type == DAGType.Temp)
+                    {
+                        right.Tags.Add(t);
+                        t.CurrentValue = right;
+                        break;
+                    }
+                }
                 i.OriginNode.Right = right;
+                i.OriginNode.Left.CurrentValue = right;
                 right.Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = i.OriginNode.Left.Offset };
                 right.Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = i.Increase };
 
@@ -1225,10 +1345,44 @@ namespace Compiler
                 DAGNode left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = i.OriginNode.Left.Offset };
                 right = new DAGNode(DAGType.Add, GetSN(), null);
                 node.Left = left;
-
+                node.Right = right;
                 //当前next的节点的运算符又下一个表达式决定
                 var next = right;
+                
                 Stack<Triple.Pair> s = new Stack<Triple.Pair>();
+                DAGNode GetLeft(Triple triple, Triple.Pair p)
+                {
+                    if (triple.Loc.Index == loop.BaseInductionVar[p.Offset].Loc.Index)
+                    {
+                        int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要加上步长
+                        if (res > 0)
+                        {
+                            DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
+                            {
+                                Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
+                                Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                            };
+                            return _left;
+                        }
+                        else
+                        {
+                            return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset };
+                        }
+                    }
+                    else if (triple.Loc.Index < loop.BaseInductionVar[p.Offset].Loc.Index)
+                    {
+                        return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset };
+                    }
+                    else
+                    {
+                        DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
+                        {
+                            Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
+                            Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                        };
+                        return _left;
+                    }
+                }
                 foreach (var j in i.BaseInductionList)
                 {
                     s.Push(j);
@@ -1239,7 +1393,7 @@ namespace Compiler
                     k = s.Pop();
                     next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                     {
-                        Left = new DAGNode(DAGType.Var, GetSN(), null) { Offset = k.Offset },
+                        Left = GetLeft(i,k),
                         Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
                     };
                 }
@@ -1255,39 +1409,7 @@ namespace Compiler
                     var v = loop.BaseInductionVar[k.Offset];
 
                     //i.Loc是k.Loc的前驱，是否有i.Loc.Index < k.Loc.Index,只需要保证递归顺序，即添加后继顺序
-                    DAGNode GetLeft(Triple triple, Triple.Pair p)
-                    {
-                        if (triple.Loc.Index == loop.BaseInductionVar[p.Offset].Loc.Index)
-                        {
-                            int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要加上步长
-                            if (res > 0)
-                            {
-                                DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
-                                {
-                                    Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
-                                    Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
-                                };
-                                return _left;
-                            }
-                            else
-                            {
-                                return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = k.Offset };
-                            }
-                        }
-                        else if (triple.Loc.Index < loop.BaseInductionVar[p.Offset].Loc.Index)
-                        {
-                            return new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = k.Offset };
-                        }
-                        else
-                        {
-                            DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
-                            {
-                                Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
-                                Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
-                            };
-                            return _left;
-                        }
-                    }
+                    
                     next.Type = DAGType.Add;
                     while (s.Count != 0)
                     {
@@ -1397,6 +1519,21 @@ namespace Compiler
         }
         private void MoveNode(DAGNode node, Block Target)
         {
+            node.Left.CurrentValue = node.Left;
+            DAGNode tmp = null;
+            foreach (var i in node.Right.Tags)
+            {
+                if (i.Type == DAGType.Temp)
+                {
+                    tmp = i;
+                    break;
+                }
+            }
+            tmp.Tags.RemoveAt(0);
+            if (tmp.Tags.Count == 0)
+            {
+                node.Host.DAG.Remove(tmp);
+            }
             /*
             if (node.Type == DAGType.Var)
             {
@@ -1903,35 +2040,49 @@ namespace Compiler
         private int CodeAddr;
         private int Temp;
 
-        private void GenerateAutoGeneratedCode(DAGNode node)
+        private void GenerateAutoGeneratedCode(DAGNode node, List<QuadrupleNode> Code)
         {
             node = GetValue(node);
             if (node.Type == DAGType.Num || node.Type == DAGType.Var)
             {
                 return;
             }
-            GenerateAutoGeneratedCode(node.Right);
             if (node.Type == DAGType.Assign)
             {
-                CodeSeg[CodeAddr++] = new QuadrupleNode(QuadrupleType.Assign)
+                var code = new QuadrupleNode(QuadrupleType.Assign)
                 {
-                    Arg1 = new QuadrupleNode(QuadrupleType.Var)
-                    {
-                        Offset = node.Left.Offset
-                    }
+                    Arg1 = VarSeg[node.Left.Offset]
                 };
                 if (node.Right.Type == DAGType.Var)
                 {
-                    CodeSeg[CodeAddr - 1].Arg2 = VarSeg[node.Right.Offset];
+                    code.Arg2 = VarSeg[node.Right.Offset];
                 }
                 else if (node.Right.Type == DAGType.Num)
                 {
-                    CodeSeg[CodeAddr - 1].Arg2 = $"#{node.Right.Value}";
+                   code.Arg2 = $"#{node.Right.Value}";
                 }
                 else
                 {
-                    CodeSeg[CodeAddr - 1].Arg2 = Temp;
+                    int res = -1;
+                    foreach (var t in node.Right.Tags)
+                    {
+                        if (t.Type == DAGType.AutoTemp)
+                        {
+                            res = (int)t.Value;
+                        }
+                    }
+                    if (res == -1)
+                    {
+                        GenerateAutoGeneratedCode(node.Right, Code);
+                        code.Arg2 = Temp;
+                    }
+                    else
+                    {
+                        code.Arg2 = res;
+                    }
                 }
+                Code.Add(code);
+                CodeAddr++;
             }
             else //说明是表达式
             {
@@ -1964,8 +2115,23 @@ namespace Compiler
                 }
                 else
                 {
-                    GenerateAutoGeneratedCode(node.Left);
-                    code.Arg1 = Temp;
+                    int res = -1;
+                    foreach (var t in node.Left.Tags)
+                    {
+                        if (t.Type == DAGType.AutoTemp)
+                        {
+                            res = (int)t.Value;
+                        }
+                    }
+                    if (res == -1)
+                    {
+                        GenerateAutoGeneratedCode(node.Left, Code);
+                        code.Arg1 = Temp;
+                    }
+                    else
+                    {
+                        code.Arg1 = res;
+                    }
                 }
                 if (node.Right.Type == DAGType.Var)
                 {
@@ -1977,13 +2143,31 @@ namespace Compiler
                 }
                 else
                 {
-                    GenerateAutoGeneratedCode(node.Right);
-                    code.Arg2 = Temp;
+                    int res = -1;
+                    foreach (var t in node.Right.Tags)
+                    {
+                        if (t.Type == DAGType.AutoTemp)
+                        {
+                            res = (int)t.Value;
+                        }
+                    }
+                    if (res == -1)
+                    {
+                        GenerateAutoGeneratedCode(node.Right, Code);
+                        code.Arg2 = Temp;
+                    }
+                    else
+                    {
+                        code.Arg2 = res;
+                    }
                 }
                 code.Result = ++Temp;
+                Code.Add(code);
+                CodeAddr++;
+                node.Tags.Add(new DAGNode(DAGType.AutoTemp, GetSN(), null) { Value = Temp });
             }
         }
-        private void DAG2Code(Block block, Dictionary<int, Block> dict)
+        private void DAG2Code(Block block, Dictionary<int, Block> dict, List<QuadrupleNode> Code)
         {
             //压缩代码空间，去掉空白代码部分(被优化掉)
             //将DAG翻译为四地址码，最后可能的return和jump不管，优化代码只会少不会多，所以保留原位即可
@@ -1998,8 +2182,7 @@ namespace Compiler
                     {
                         throw new Exception();
                     }
-                    GenerateAutoGeneratedCode(i);
-                    Temp = -1;
+                    GenerateAutoGeneratedCode(i, Code);
                 }
                 block.End = CodeAddr - 1;
                 return;
@@ -2049,7 +2232,8 @@ namespace Compiler
                         Arg2 = ConvertNode(node.CurrentValue.Right),
                         Result = -node.Offset
                     };
-                    CodeSeg[CodeAddr++] = code;
+                    Code.Add(code);
+                    CodeAddr++;
                     continue;
                 }
                 else if (node.Type == DAGType.Temp) //这里只处理中间运算节点
@@ -2088,32 +2272,35 @@ namespace Compiler
                             Arg2 = ConvertNode(GetValue(node).Right),
                             Result = (int)node.Value
                         };
-                        CodeSeg[CodeAddr++] = code;
+                        Code.Add(code);
+                        CodeAddr++;
                         continue;
                     }
                 }
                 else if (node.Type == DAGType.Assign)
                 {
-                    QuadrupleNode codenode = new QuadrupleNode(QuadrupleType.Assign);
+                    QuadrupleNode code = new QuadrupleNode(QuadrupleType.Assign);
                     if (node.Left.Type != DAGType.Var)
                     {
                         throw new Exception("只有变量能被赋值");
                     }
                     else
                     {
-                        codenode.Arg1 = VarSeg[node.Left.Offset];
+                        code.Arg1 = VarSeg[node.Left.Offset];
                     }
-                    codenode.Arg2 = ConvertNode(node.Right);
-                    CodeSeg[CodeAddr++] = codenode;
+                    code.Arg2 = ConvertNode(node.Right);
+                    Code.Add(code);
+                    CodeAddr++;
                     continue;
                 }
                 else if (node.Type == DAGType.Read)
                 {
-                    QuadrupleNode codenode = new QuadrupleNode(QuadrupleType.Read)
+                    QuadrupleNode code = new QuadrupleNode(QuadrupleType.Read)
                     {
                         Arg1 = node.list
                     };
-                    CodeSeg[CodeAddr++] = codenode;
+                    Code.Add(code);
+                    CodeAddr++;
                 }
                 else if (node.Type == DAGType.Write)
                 {
@@ -2147,19 +2334,21 @@ namespace Compiler
                              }
                          }
                      }*/
-                    QuadrupleNode codenode = new QuadrupleNode(QuadrupleType.Write)
+                    QuadrupleNode code = new QuadrupleNode(QuadrupleType.Write)
                     {
                         Arg1 = node.list
                     };
-                    CodeSeg[CodeAddr++] = codenode;
+                    Code.Add(code);
+                    CodeAddr++;
                 }
                 else if (node.Type == DAGType.Call)
                 {
-                    QuadrupleNode codenode = new QuadrupleNode(QuadrupleType.Call)
+                    QuadrupleNode code = new QuadrupleNode(QuadrupleType.Call)
                     {
                         JumpAddr = dict[(int)node.Value]
                     };
-                    CodeSeg[CodeAddr++] = codenode;
+                    Code.Add(code);
+                    CodeAddr++;
                 }
                 else
                 {
@@ -2168,12 +2357,13 @@ namespace Compiler
             }
             int end = CodeAddr - 1;//CodeAddr指向下一个待填的
             //处理代码跳转部分
-            if (CodeAddr <= block.End && !NotJumpOrReturn(block.End))
+            if (!NotJumpOrReturn(block.End))
             {
-                CodeSeg[CodeAddr] = CodeSeg[block.End];
-                if (IsConditionJump(CodeAddr))
+                Code.Add(CodeSeg[block.End]);
+                CodeAddr++;
+                if (IsConditionJump(block.End))
                 {
-                    QuadrupleNode node = CodeSeg[CodeAddr];
+                    QuadrupleNode node = CodeSeg[block.End];
 
                     var left = GetNode(node.Arg1, Nodes, block);
                     var right = GetNode(node.Arg2, Nodes, block);
@@ -2188,18 +2378,14 @@ namespace Compiler
                         node.Arg2 = $"#{rv.Value}";
                     }
                 }
-                if (IsConditionJump(CodeAddr) || CodeSeg[block.End].Type == QuadrupleType.JMP)
-                {
-                    CodeSeg[block.End].JumpAddr = dict[(int)CodeSeg[block.End].Result];
-                }
-                end = CodeAddr;
-                CodeAddr++;
+                //if (IsConditionJump(block.End) || CodeSeg[block.End].Type == QuadrupleType.JMP)
+                //{
+                //    Code[Code.Count - 1].JumpAddr = dict[(int)CodeSeg[block.End].Result];
+                //}
+                
+                end = CodeAddr - 1;
             }
             //空白区域置null
-            for (int i = CodeAddr; i <= block.End; ++i)
-            {
-                CodeSeg[i] = null;
-            }
             block.End = end;
         }
         private DAGNode GetNode(object n, List<DAGNode> Nodes, Block block)
@@ -2269,9 +2455,17 @@ namespace Compiler
              *   然后递归表达式，将其中各个Tag设置为活跃
              *   在局部删除时暂定所有变量为ACTIVE
              */
+
+            foreach (var i in block.DAG)
+            {
+                if (i.Type == DAGType.Temp)
+                {
+                    i.Active = false;
+                }
+            }
             List<DAGNode> Nodes = block.DAG;
             Queue<DAGNode> ActiveExpr = new Queue<DAGNode>();
-            foreach (var i in Nodes)
+            foreach (var i in Nodes.ToList())
             {
                 if (i.Type == DAGType.Var)
                 {
@@ -2386,32 +2580,24 @@ namespace Compiler
             while (ActiveExpr.Count != 0)
             {
                 var node = ActiveExpr.Dequeue();
+                foreach (var k in node.Tags)
+                {
+                    if (k.Type == DAGType.Temp)
+                    {
+                        k.Active = true;
+                    }
+                }
                 if (node.Left.Type == DAGType.Temp)
                 {
                     node.Left.Active = true;
                     var value = GetValue(node.Left);
                     if (IsExpressionNode(value))
                     {
-                        foreach (var i in value.Tags)
-                        {
-                            if (i.Type == DAGType.Temp)
-                            {
-                                i.Active = true;
-                            }
-                        }
                         ActiveExpr.Enqueue(value);
                     }
                 }
                 else if (IsExpressionNode(node.Left))
                 {
-                    foreach (var i in node.Left.Tags)
-                    {
-                        if (i.Type == DAGType.Temp)
-                        {
-                            i.Active = true;
-                            break;//多个临时变量指向同一个说明存在公共子表达式，保留第一个
-                        }
-                    }
                     ActiveExpr.Enqueue(node.Left);
                 }
                 if (node.Right.Type == DAGType.Temp)
@@ -2420,26 +2606,11 @@ namespace Compiler
                     node.Right.Active = true;
                     if (IsExpressionNode(value))
                     {
-                        foreach (var i in value.Tags)
-                        {
-                            if (i.Type == DAGType.Temp)
-                            {
-                                i.Active = true;
-                            }
-                        }
                         ActiveExpr.Enqueue(value);
                     }
                 }
                 else if (IsExpressionNode(node.Right))
                 {
-                    foreach (var i in node.Right.Tags)
-                    {
-                        if (i.Type == DAGType.Temp)
-                        {
-                            i.Active = true;
-                            break;//多个临时变量指向同一个说明存在公共子表达式，保留第一个
-                        }
-                    }
                     ActiveExpr.Enqueue(node.Right);
                 }
             }

@@ -3,9 +3,9 @@ var e,d,k,i;
 begin
 while k <> d
 do
-begin
-	i := e + 1;
-	k := i * 2 + 5;
-	write(k)
+	begin
+		i := i + 1;
+		k := i * 2 + 5;
+		write(k)
 	end
 end.
