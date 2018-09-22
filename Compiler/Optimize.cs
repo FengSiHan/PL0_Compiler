@@ -882,6 +882,7 @@ namespace Compiler
                     CodeSeg[i] = null;
                 }
             }
+            //RelocateJumpAddrToAddr();
             CompressCodeSeg();
             return CodeSeg;
         }
@@ -913,21 +914,25 @@ namespace Compiler
                 }
                 prev.Prev.Add(sub.Edge.End);
                 prev.Next = sub.Edge.End.Next;
-                //那么问题来了 start值是多少,随便设吧，无所谓的
                 sub.Edge.End.Next = new List<Block>();
+                //那么问题来了 start值是多少,随便设吧，无所谓的
                 sub.Edge.End.Next.Add(prev);
                 prev.Start = sub.Edge.End.Next.Count == 0 ? sub.Edge.End.End : sub.Edge.End.Next[0].Start;
                 foreach (var i in prev.Next)
                 {
                     i.Prev.Remove(sub.Edge.End);
                     i.Prev.Add(prev);
+                    /*
                     foreach (var j in i.JumpInsAddr)
                     {
                         j.JumpAddr = prev;
                         prev.JumpInsAddr.Add(j);
                     }
+                    */
                 }
-                prev.JumpInsAddr = sub.Edge.End.JumpInsAddr;
+                //跳转到sub.Edge.End的节点，不该转跳转到prev
+                //而关于prev.Next，跳转到这些地方的指令也不能改跳转到Prev
+                //prev.JumpInsAddr = sub.Edge.End.JumpInsAddr;
                 return;
             }
             //外层循环的preHeader应该放到内层循环之后
@@ -945,13 +950,9 @@ namespace Compiler
             prev.JumpInsAddr = start.JumpInsAddr;
             foreach (var i in prev.JumpInsAddr)
             {
-                i.JumpAddr = prev;
-            }
-            foreach (var i in loop.InnerBlock)
-            {
-                if (Blocks[i].Start == loop.LoopEntrance)
+                if (i != CodeSeg[loop.Edge.End.End])
                 {
-                    CodeSeg[loop.Edge.End.End].JumpAddr = Blocks[i];
+                    i.JumpAddr = prev;
                 }
             }
         }
@@ -1783,7 +1784,11 @@ namespace Compiler
                     stack.Push(i);
                     if (i.Index != -1 && i.Index <= top.Index) //跳转到自己也算循环
                     {
-                        backEdges.Add(new BackEdge(top, i));
+                        if (CodeSeg[top.End].Result == i.Start) //call指令可能导致误识别
+                        {
+                            backEdges.Add(new BackEdge(top, i));
+                            CodeSeg[top.End].JumpAddr = i;
+                        }
                     }
                 }
             }

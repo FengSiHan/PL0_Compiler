@@ -1,12 +1,23 @@
 ﻿const a=5,b=4,c=3;
 var e,d,k,i,j;
+procedure test;
+	const h = 4;
+	var p,l;
+	while k <> p
+	do 
+		begin
+			k := p + 5;
+			read(p)
+		end;
 begin
-while k <> d
-do
-	begin
-		i := i + 1;
-		j := j + 2;
-		k := i * 2 + 5 * j;
-		write(k)
-	end
+	while k <> d
+	do
+		begin
+			i := i + 1;
+			j := j + 2;
+			k := i * 2 + 5 * j;
+			write(k);
+			call test
+		end;
+	write(d)
 end.
