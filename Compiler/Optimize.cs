@@ -862,7 +862,7 @@ namespace Compiler
                 {
                     deleteList.Add(i);
                 }
-                
+
                 else if (Code[i.Start].Type == QuadrupleType.Return)
                 {
                     deleteList.Add(i);
@@ -951,7 +951,7 @@ namespace Compiler
             {
                 if (Blocks[i].Start == loop.LoopEntrance)
                 {
-                    CodeSeg[loop.Edge.End.End].JumpAddr =Blocks[i];
+                    CodeSeg[loop.Edge.End.End].JumpAddr = Blocks[i];
                 }
             }
         }
@@ -1071,6 +1071,7 @@ namespace Compiler
                                     induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
                                     induction.AddBaseInduction(top.Offset, lastOP == DAGType.Add ? 1 : -1);
                                 }
+                                continue;
                             }
                             else if (top.Type == DAGType.Mul)
                             {
@@ -1170,6 +1171,7 @@ namespace Compiler
                                     induction.ChangeStep(lastOP == DAGType.Add ? incr : -incr);
                                     induction.AddBaseInduction(var.Offset, lastOP == DAGType.Add ? (int)num.Value : -1 * (int)num.Value);
                                 }
+                                continue;
                             }
                             else if (top.Left.Type == DAGType.Var)
                             {
@@ -1348,7 +1350,7 @@ namespace Compiler
                 node.Right = right;
                 //当前next的节点的运算符又下一个表达式决定
                 var next = right;
-                
+
                 Stack<Triple.Pair> s = new Stack<Triple.Pair>();
                 DAGNode GetLeft(Triple triple, Triple.Pair p)
                 {
@@ -1393,7 +1395,7 @@ namespace Compiler
                     k = s.Pop();
                     next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                     {
-                        Left = GetLeft(i,k),
+                        Left = GetLeft(i, k),
                         Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = k.Coefficient }
                     };
                 }
@@ -1409,12 +1411,13 @@ namespace Compiler
                     var v = loop.BaseInductionVar[k.Offset];
 
                     //i.Loc是k.Loc的前驱，是否有i.Loc.Index < k.Loc.Index,只需要保证递归顺序，即添加后继顺序
-                    
+
                     next.Type = DAGType.Add;
                     while (s.Count != 0)
                     {
                         k = s.Pop();
                         next.Type = DAGType.Add;
+                        next.Right = new DAGNode(DAGType.Add, GetSN(), null);
                         next = next.Right;
                         next.Left = new DAGNode(DAGType.Mul, GetSN(), null)
                         {
@@ -1423,7 +1426,7 @@ namespace Compiler
                         };
                     }
                 }
-                for(int j = 0; j < i.Init.Count - 1; ++j)
+                for (int j = 0; j < i.Init.Count - 1; ++j)
                 {
                     var t = i.Init[j];
                     next.Type = t.Operation;
@@ -1431,8 +1434,16 @@ namespace Compiler
                     next.Right.Left = t.Value;
                     next = next.Right;
                 }
-                next.Type = i.Init[i.Init.Count - 1].Operation;
-                next.Right = i.Init[i.Init.Count - 1].Value;
+                if (i.Init.Count == 1)
+                {
+                    next.Type = i.Init[i.Init.Count - 1].Operation;
+                    next.Right = i.Init[i.Init.Count - 1].Value;
+                }
+                else
+                {
+                    next.Type = DAGType.Add;
+                    next.Right = new DAGNode(DAGType.Num, GetSN(), null) { Value = 0 };
+                }
                 loop.PrevHeader.DAG.Add(node);
             }
         }
@@ -2059,7 +2070,7 @@ namespace Compiler
                 }
                 else if (node.Right.Type == DAGType.Num)
                 {
-                   code.Arg2 = $"#{node.Right.Value}";
+                    code.Arg2 = $"#{node.Right.Value}";
                 }
                 else
                 {
@@ -2161,6 +2172,7 @@ namespace Compiler
                         code.Arg2 = res;
                     }
                 }
+
                 code.Result = ++Temp;
                 Code.Add(code);
                 CodeAddr++;
@@ -2382,7 +2394,7 @@ namespace Compiler
                 //{
                 //    Code[Code.Count - 1].JumpAddr = dict[(int)CodeSeg[block.End].Result];
                 //}
-                
+
                 end = CodeAddr - 1;
             }
             //空白区域置null

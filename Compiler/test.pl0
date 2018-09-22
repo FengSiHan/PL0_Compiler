@@ -1,11 +1,12 @@
 ﻿const a=5,b=4,c=3;
-var e,d,k,i;
+var e,d,k,i,j;
 begin
 while k <> d
 do
 	begin
 		i := i + 1;
-		k := i * 2 + 5;
+		j := j + 2;
+		k := i * 2 + 5 * j;
 		write(k)
 	end
 end.
