@@ -47,7 +47,7 @@
     <Compile Include="Optimize.cs" />
     <Compile Include="DList.cs" />
     <Compile Include="ErrorMsgList.cs" />
-    <Compile Include="Compiler.cs" />
+    <Compile Include="ILGenerator.cs" />
     <Compile Include="Lexer.cs" />
     <Compile Include="Node.cs" />
     <Compile Include="Parser.cs" />
