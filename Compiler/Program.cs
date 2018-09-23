@@ -13,10 +13,9 @@ namespace Compiler
         public static void Main(string[] arg)
         {
             string code = File.ReadAllText($"../../test.pl0");
-            Compiler compiler = new Compiler();
-            compiler.Parse(code);
-            compiler.PrintError();
-            compiler.GenerateCode();
+            ILGenerator compiler = new ILGenerator();
+            compiler.GenerateCode(code, 0);
+            compiler.PrintQCode();
             Console.WriteLine("输入任意键结束...");
             Console.ReadKey();
         }

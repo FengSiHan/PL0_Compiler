@@ -7,15 +7,26 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    class Compiler
+    /// <summary>
+    /// 中间代码生成器
+    /// </summary>
+    class ILGenerator
     {
-        public int NumOfError { get; private set; }
         public void PrintError()
         {
             parser.PrintErrorMsg();
         }
-        public void GenerateCode()
+
+        /// <summary>
+        /// 产生中间代码（可以选择优化等级）
+        /// </summary>
+        /// <param name="Text">优化代码</param>
+        /// <param name="Level">优化等级为0 ~ 3</param>
+        public void GenerateCode(string Text, int Level)
         {
+            Parse(Text);
+            Done = true;
+            OptimizationLevel = Level;
             if (NumOfError != 0)
             {
                 Console.WriteLine("Please correct all errors before generaing code");
@@ -25,40 +36,61 @@ namespace Compiler
             GetQuadruples(Root);
             LocateJumpNodeAndDetermineNodeOffset();//获取四元式后，回填跳转地址并且对每个节点赋于地址值
             Optimize optimize = new Optimize(CodeSeg, VarSeg, CodeEntrance);
-            optimize.LocalOptimization();
-            optimize.LoopOptimization();
-            optimize.GlobalOptimization();//O(n^4警告)
-            CodeSeg = optimize.GenerateCode();
-            PrintCode();
-            //Optimize()
-            //ReGenerateCode()
-        }
-        public Compiler()
-        {
-            ConstSeg = new List<int>(16);
-            ProcedureSeg = new List<QuadrupleNode>(16);
-            VarSeg = new List<QuadrupleNode>(16);
-            CodeSeg = new List<QuadrupleNode>(64);
-            FreeDataIndex = 0;
-            NumOfError = 0;
-            CodeEntrance = -1;
-        }
-        public void Parse(string text)
-        {
-            parser = new Parser(text);
-            Root = parser.Parse();
-            NumOfError = parser.GetNumofErrors();
-        }
-        public void PrintCode()
-        {
-            if (NumOfError != 0)
+            if (Level > 0)
             {
-                Console.WriteLine("Code needs correcting before generating code");
+                optimize.LocalOptimization();
+            }
+            if (Level > 1)
+            {
+                optimize.LoopOptimization();
+            }
+            if (Level > 2)
+            {
+                optimize.GlobalOptimization();//O(n^4警告)
+            }
+            if (Level > 3)
+            {
+                Console.WriteLine("4级别优化请给Jeff Dean发邮件");
+            }
+            if (Level > 0)
+            {
+                CodeSeg = optimize.GenerateCode();
+            }
+            else
+            {
+                //添加程序入口
+                List<QuadrupleNode> Code = new List<QuadrupleNode>();
+                Code.Add(new QuadrupleNode(QuadrupleType.JMP) { Result = CodeEntrance + 1});
+                int JumpValue = Convert.ToInt32(QuadrupleType.JMP);
+                foreach (var i in CodeSeg)
+                {
+                    QuadrupleType type = i.Type;
+                    int v = Convert.ToInt32(type);
+                    if (v <= JumpValue || type == QuadrupleType.Call)
+                    {
+                        i.Result++;
+                    }
+                    Code.Add(i);
+                }
+                CodeSeg = Code;
+            }
+        }
+
+        /// <summary>
+        /// 输出四元式
+        /// </summary>
+        public void PrintQCode()
+        {
+            if (!Done)
+            {
+                Console.WriteLine("Please generate intermediate code first");
                 return;
             }
-            if (parser == null)
+            if (NumOfError != 0)
             {
-                Console.WriteLine("Please parse code first");
+                PrintError();
+                Console.WriteLine("Code needs correcting before generating code");
+                return;
             }
             int index = 0;
             foreach (QuadrupleNode i in CodeSeg)
@@ -172,21 +204,67 @@ namespace Compiler
             }
         }
 
+        internal void GetCode(ref List<QuadrupleNode> Code, ref List<QuadrupleNode> Var)
+        {
+            if (!Done)
+            {
+                Console.WriteLine("Please generate intermediate code first");
+                return;
+            }
+            Code = CodeSeg;
+            Var = VarSeg;
+        }
+
+        /// <summary>
+        /// 0~3等级
+        /// </summary>
+
+        private int OptimizationLevel;
+
+        /// <summary>
+        /// 指示编译完成
+        /// </summary>
+        private bool Done;
+
+        public ILGenerator()
+        {
+            ConstSeg = new List<int>(16);
+            ProcedureSeg = new List<QuadrupleNode>(16);
+            VarSeg = new List<QuadrupleNode>(16);
+            CodeSeg = new List<QuadrupleNode>(64);
+            FreeDataIndex = 0;
+            NumOfError = 0;
+            CodeEntrance = -1;
+            OptimizationLevel = 0;
+            Done = false;
+        }
+
         internal int GetCodeEntrance()
         {
             return CodeEntrance;
         }
 
-        internal void ChangeCodeSeg(List<QuadrupleNode>list)
+        private void Parse(string text)
+        {
+            parser = new Parser(text);
+            Root = parser.Parse();
+            NumOfError = parser.GetNumofErrors();
+        }
+
+        internal int NumOfError { get; private set; }
+
+        internal void ChangeCodeSeg(List<QuadrupleNode> list)
         {
             CodeSeg = list;
         }
+
         private void Clear()
         {
             VarSeg.Clear();
             ConstSeg.Clear();
             CodeSeg.Clear();
         }
+
         private int GetTemp()
         {
             if (FreeDataIndex == MaxTempDataNum)
@@ -195,10 +273,12 @@ namespace Compiler
             }
             return FreeDataIndex++;
         }
+
         private void FreeAllTempData() //保证一个基本块内不会执行,即保证基本块内临时变量不重复
         {
             FreeDataIndex = 0;
         }
+
         private Object GetArg(AstNode node)
         {
             if (node.Type == ExprType.NUM)
@@ -218,6 +298,7 @@ namespace Compiler
                 return null;
             }
         }
+
         private void GetQuadruples(AstNode now)//dfs
         {
             if (now == null)
@@ -343,7 +424,7 @@ namespace Compiler
                     CodeSeg.Add(node);
                     GetQuadruples(now.Left.Right);
                     FreeAllTempData();
-                    node.Result = CodeSeg.Count; 
+                    node.Result = CodeSeg.Count;
                     //不成立跳转到隶属then的语句的之后
                     //跳转指令的result(即目标地址)需要指向一个节点
                     //扫描一遍回填
@@ -514,6 +595,7 @@ namespace Compiler
             }
 
         }
+
         private void LocateJumpNodeAndDetermineNodeOffset()
         {
             for (int i = 0; i < CodeSeg.Count; ++i)
@@ -539,6 +621,7 @@ namespace Compiler
                 */
             }
         }
+
         private QuadrupleType GetOppositeJumpInstruction(object info)
         {
             if (info is string)
@@ -569,6 +652,7 @@ namespace Compiler
             }
             throw new Exception($"Unexpected {info},Exprect Relation Operator");
         }
+
         private QuadrupleType GetJumpInstruction(object info)
         {
             if (info is string)
@@ -599,6 +683,7 @@ namespace Compiler
             }
             throw new Exception($"Unexpected {info},Exprect Relation Operator");
         }
+
         private QuadrupleType GetOperator(object info)
         {
             if (info is char)
@@ -617,19 +702,30 @@ namespace Compiler
             }
             throw new Exception($"Unexpected {info} in GetOperator");
         }
+
         private bool IsJumpInstruction(QuadrupleType type)
         {
             return Convert.ToInt32(type) <= Convert.ToInt32(QuadrupleType.JMP);
         }
+
         private Parser parser;
+
         private AstNode Root;
+
         private List<QuadrupleNode> VarSeg, ProcedureSeg;
+
         private List<int> ConstSeg;
+
         private List<QuadrupleNode> CodeSeg;
+
         private int FreeDataIndex;
+
         private int ResultIndex;//记录上一次计算后结果存放位置,用数字表示临时变量
+
         public static readonly int MagicNumber = 2085433141;
+
         private static readonly int MaxTempDataNum = 2333;
+
         private int CodeEntrance;
     }
 }

@@ -1,5 +1,8 @@
 ﻿const a=5,b=4,c=3;
 var e,d,k,i,j;
+procedure test;
+	var h;
+	read(h);
 begin
 	while d > 6
 	do

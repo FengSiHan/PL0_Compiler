@@ -205,7 +205,7 @@ namespace Compiler
             {
                 return (int)hash;
             }
-            var hashCode = Compiler.MagicNumber;
+            var hashCode = ILGenerator.MagicNumber;
             hashCode ^= Type.GetHashCode() << 24;
             if (Type == DAGType.Var || Type == DAGType.Anonymous)
             {
