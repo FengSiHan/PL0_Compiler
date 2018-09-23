@@ -14,7 +14,7 @@ namespace Compiler
         {
             string code = File.ReadAllText($"../../test.pl0");
             ILGenerator compiler = new ILGenerator();
-            compiler.GenerateCode(code, 0);
+            compiler.GenerateCode(code, 1);
             compiler.PrintQCode();
             Console.WriteLine("输入任意键结束...");
             Console.ReadKey();

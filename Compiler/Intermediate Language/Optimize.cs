@@ -2119,7 +2119,7 @@ namespace Compiler
                     {
                         node.Arg1 = $"#{lv.Value}";
                     }
-                    if (rv.Type == DAGType.Num)
+                    if (rv?.Type == DAGType.Num)
                     {
                         node.Arg2 = $"#{rv.Value}";
                     }
@@ -2226,7 +2226,7 @@ namespace Compiler
                 }
                 else
                 {
-                    if (left.CurrentValue.Type == DAGType.Num && right.CurrentValue.Type == DAGType.Num)
+                    if (left.CurrentValue.Type == DAGType.Num && right?.CurrentValue.Type == DAGType.Num)
                     {
                         switch (node.Type)
                         {
@@ -2260,7 +2260,7 @@ namespace Compiler
                                 ActiveExpr.Enqueue(value);
                             }
                         }
-                        if (right.Type == DAGType.Temp)
+                        if (right?.Type == DAGType.Temp)
                         {
                             right.Active = true;
                             var value = GetValue(right);
@@ -2538,6 +2538,10 @@ namespace Compiler
 
         private DAGNode GetValue(DAGNode node)
         {
+            if (node == null)
+            {
+                return null;
+            }
             if (node.Type == DAGType.Temp) //必为运算结果
             {
                 var result = node.CurrentValue;
@@ -2932,7 +2936,7 @@ namespace Compiler
         }
 
         /// <summary>
-        /// 循环不变式的具体记录
+        /// 归纳变量的简化记录
         /// </summary>
         internal class Triple
         {

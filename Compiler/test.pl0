@@ -7,12 +7,12 @@ begin
 	while d > 6
 	do
 		begin
-			while k <> d
+			while odd k
 			do
 				begin
 					i := i + 1;
 					j := j + 2;
-					k := i * 2 + 5 * j;
+					k := i * 2 - 5 * j;
 					write(k)
 				end;
 			write(d)

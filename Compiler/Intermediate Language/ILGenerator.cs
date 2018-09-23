@@ -59,7 +59,7 @@ namespace Compiler
             {
                 //添加程序入口
                 List<QuadrupleNode> Code = new List<QuadrupleNode>();
-                Code.Add(new QuadrupleNode(QuadrupleType.JMP) { Result = CodeEntrance + 1});
+                Code.Add(new QuadrupleNode(QuadrupleType.JMP) { Result = CodeEntrance + 1 });
                 int JumpValue = Convert.ToInt32(QuadrupleType.JMP);
                 foreach (var i in CodeSeg)
                 {
@@ -416,12 +416,16 @@ namespace Compiler
                         GetQuadruples(now.Left.Left.Left);//左边表达式
                         node.Arg1 = ResultIndex;
                     }
-                    node.Arg2 = GetArg(now.Left.Left.Right);
-                    if (node.Arg2 == null)
+                    if (node.Type != QuadrupleType.JO && node.Type != QuadrupleType.JNO)
                     {
-                        GetQuadruples(now.Left.Left.Right);
-                        node.Arg2 = ResultIndex;
+                        node.Arg2 = GetArg(now.Left.Left.Right);
+                        if (node.Arg2 == null)
+                        {
+                            GetQuadruples(now.Left.Left.Right);
+                            node.Arg2 = ResultIndex;
+                        }
                     }
+
                     CodeSeg.Add(node);
                     GetQuadruples(now.Left.Right);
                     FreeAllTempData();
@@ -453,11 +457,15 @@ namespace Compiler
                         GetQuadruples(now.Left.Left);
                         node.Arg1 = ResultIndex;
                     }
-                    node.Arg2 = GetArg(now.Left.Right);
-                    if (node.Arg2 == null)
+
+                    if (node.Type != QuadrupleType.JNO && node.Type != QuadrupleType.JO)
                     {
-                        GetQuadruples(now.Left.Right);
-                        node.Arg2 = ResultIndex;
+                        node.Arg2 = GetArg(now.Left.Right);
+                        if (node.Arg2 == null)
+                        {
+                            GetQuadruples(now.Left.Right);
+                            node.Arg2 = ResultIndex;
+                        }
                     }
                     CodeSeg.Add(node);
                     FreeAllTempData();
@@ -473,11 +481,14 @@ namespace Compiler
                         GetQuadruples(now.Left.Left);
                         node.Arg1 = ResultIndex;
                     }
-                    node.Arg2 = GetArg(now.Left.Right);
-                    if (node.Arg2 == null)
+                    if (node.Type != QuadrupleType.JNO && node.Type != QuadrupleType.JO)
                     {
-                        GetQuadruples(now.Left.Right);
-                        node.Arg2 = ResultIndex;
+                        node.Arg2 = GetArg(now.Left.Right);
+                        if (node.Arg2 == null)
+                        {
+                            GetQuadruples(now.Left.Right);
+                            node.Arg2 = ResultIndex;
+                        }
                     }
                     CodeSeg.Add(node);
                     int location = CodeSeg.Count;
@@ -495,12 +506,16 @@ namespace Compiler
                         GetQuadruples(now.Left.Left);
                         back.Arg1 = ResultIndex;
                     }
-                    back.Arg2 = GetArg(now.Left.Right);
-                    if (back.Arg2 == null)
+                    if (back.Type != QuadrupleType.JNO && back.Type != QuadrupleType.JO)
                     {
-                        GetQuadruples(now.Left.Right);
-                        back.Arg2 = ResultIndex;
+                        back.Arg2 = GetArg(now.Left.Right);
+                        if (back.Arg2 == null)
+                        {
+                            GetQuadruples(now.Left.Right);
+                            back.Arg2 = ResultIndex;
+                        }
                     }
+
                     CodeSeg.Add(back);
                     node.Result = CodeSeg.Count;
                     FreeAllTempData();
