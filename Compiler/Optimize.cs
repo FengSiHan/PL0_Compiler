@@ -829,7 +829,7 @@ namespace Compiler
             //优化的时候需要保证优化完成前的代码跳转指向块
             //产生代码时才能正确指向跳转地址
             //产生代码时每条代码的地址会发生变化，block记录的start也会随之而变
-            CodeAddr = 0;
+            CodeAddr = 1;
             List<QuadrupleNode> Code = new List<QuadrupleNode>();
             List<Block> deleteList = new List<Block>();
             Dictionary<int, Block> dict = new Dictionary<int, Block>();
@@ -841,6 +841,7 @@ namespace Compiler
                 }
                 return i.Start.CompareTo(j.Start);
             });
+            Code.Add(new QuadrupleNode(QuadrupleType.JMP) { JumpAddr = EntranceBlock });
             foreach (var i in Blocks)
             {
                 if (dict.ContainsKey(i.Start))
@@ -1813,7 +1814,7 @@ namespace Compiler
         }
         private void RemoveBlank()
         {
-            CodeAddr = 0;
+            CodeAddr = 1;
             RelocateJumpAddrToBlock();
             foreach (var block in Blocks)
             {
@@ -2012,7 +2013,7 @@ namespace Compiler
                     visited[k] = true;
                 }
             }
-            for (int i = 0; i < CodeSeg.Count; ++i)
+            for (int i = 1; i < CodeSeg.Count; ++i)
             {
                 if (visited[i] == false)
                 {

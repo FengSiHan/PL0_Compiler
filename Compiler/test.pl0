@@ -10,14 +10,18 @@ procedure test;
 			read(p)
 		end;
 begin
-	while k <> d
+	while d > 6
 	do
 		begin
-			i := i + 1;
-			j := j + 2;
-			k := i * 2 + 5 * j;
-			write(k);
-			call test
-		end;
-	write(d)
+			while k <> d
+			do
+				begin
+					i := e + 1;
+					j := j + 2;
+					k := i * 2 + 5 * j;
+					write(k);
+					call test
+				end;
+			write(d)
+		end
 end.
