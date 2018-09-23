@@ -1,14 +1,5 @@
 ﻿const a=5,b=4,c=3;
 var e,d,k,i,j;
-procedure test;
-	const h = 4;
-	var p,l;
-	while k <> p
-	do 
-		begin
-			k := p + 5;
-			read(p)
-		end;
 begin
 	while d > 6
 	do
@@ -16,11 +7,10 @@ begin
 			while k <> d
 			do
 				begin
-					i := e + 1;
+					i := i + 1;
 					j := j + 2;
 					k := i * 2 + 5 * j;
-					write(k);
-					call test
+					write(k)
 				end;
 			write(d)
 		end

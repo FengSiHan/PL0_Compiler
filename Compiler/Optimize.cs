@@ -800,6 +800,7 @@ namespace Compiler
             //所有没有被contained的都是最外层自然循环，对其递归优化
             foreach (var i in Loops)
             {
+                if (!i.Contained)
                 {
                     InvariantOptimization(i);
                 }
@@ -913,15 +914,15 @@ namespace Compiler
                 {
                     throw new Exception();
                 }
-                prev.Prev.Add(sub.Edge.End);
-                prev.Next = sub.Edge.End.Next;
+                prev.Prev.Add(sub.Edge.Start);
+                prev.Next = sub.Edge.Start.Next;
                 sub.Edge.End.Next = new List<Block>();
                 //那么问题来了 start值是多少,随便设吧，无所谓的
                 sub.Edge.End.Next.Add(prev);
-                prev.Start = sub.Edge.End.Next.Count == 0 ? sub.Edge.End.End : sub.Edge.End.Next[0].Start;
+                prev.Start = sub.Edge.Start.Next.Count == 0 ? sub.Edge.Start.End : sub.Edge.Start.Next[0].Start;
                 foreach (var i in prev.Next)
                 {
-                    i.Prev.Remove(sub.Edge.End);
+                    i.Prev.Remove(sub.Edge.Start);
                     i.Prev.Add(prev);
                     /*
                     foreach (var j in i.JumpInsAddr)
@@ -941,17 +942,21 @@ namespace Compiler
             prev.Prev = start.Prev;
             start.Prev = new List<Block>();
             start.Prev.Add(prev);
+            prev.Prev.Remove(loop.Edge.Start);
             foreach (var i in prev.Prev)
             {
-                i.Next.Remove(start);
-                i.Next.Add(prev);
+                if (i != loop.Edge.Start)
+                {
+                    i.Next.Remove(start);
+                    i.Next.Add(prev);
+                }
             }
             prev.Next.Add(start);
 
             prev.JumpInsAddr = start.JumpInsAddr;
             foreach (var i in prev.JumpInsAddr)
             {
-                if (i != CodeSeg[loop.Edge.End.End])
+                if (i != CodeSeg[loop.Edge.Start.End])
                 {
                     i.JumpAddr = prev;
                 }
@@ -1524,8 +1529,8 @@ namespace Compiler
             //只需要移除原来DAG的赋值节点，其他的引用会被DeleteUselessTemp()清除
             foreach (var i in InvariantExpr)
             {
-                MoveNode(i.Node, loop.PrevHeader);//什么都不做，在生成的时候对PreHeader中的DAG特殊处理
                 i.Host.Remove(i.Node);
+                MoveNode(i.Node, loop.PrevHeader);//什么都不做，在生成的时候对PreHeader中的DAG特殊处理
                 loop.PrevHeader.DAG.Add(i.Node);
             }
             loop.AssignDict = dict;
@@ -1542,20 +1547,18 @@ namespace Compiler
                     break;
                 }
             }
-            if (!node.Host.AutoGenerate)
+            node.Host = Target;
+            try
             {
-                try
-                {
-                    tmp.Tags.RemoveAt(0);
-                }
-                catch
-                {
+                tmp.Tags.RemoveAt(0);
+            }
+            catch
+            {
 
-                }
-                if (tmp.Tags.Count == 0)
-                {
-                    node.Host.DAG.Remove(tmp);
-                }
+            }
+            if (tmp.Tags.Count == 0)
+            {
+                node.Host.DAG.Remove(tmp);
             }
             /*
             if (node.Type == DAGType.Var)
