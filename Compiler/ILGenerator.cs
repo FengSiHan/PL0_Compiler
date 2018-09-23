@@ -29,7 +29,6 @@ namespace Compiler
             OptimizationLevel = Level;
             if (NumOfError != 0)
             {
-                Console.WriteLine("Please correct all errors before generaing code");
                 return;
             }
             Clear();
@@ -77,7 +76,7 @@ namespace Compiler
         }
 
         /// <summary>
-        /// 输出四元式
+        /// 打印四元式
         /// </summary>
         public void PrintQCode()
         {
@@ -204,27 +203,6 @@ namespace Compiler
             }
         }
 
-        internal void GetCode(ref List<QuadrupleNode> Code, ref List<QuadrupleNode> Var)
-        {
-            if (!Done)
-            {
-                Console.WriteLine("Please generate intermediate code first");
-                return;
-            }
-            Code = CodeSeg;
-            Var = VarSeg;
-        }
-
-        /// <summary>
-        /// 0~3等级
-        /// </summary>
-
-        private int OptimizationLevel;
-
-        /// <summary>
-        /// 指示编译完成
-        /// </summary>
-        private bool Done;
 
         public ILGenerator()
         {
@@ -237,6 +215,29 @@ namespace Compiler
             CodeEntrance = -1;
             OptimizationLevel = 0;
             Done = false;
+        }
+
+        #region Uitls&Members
+
+        /// <summary>
+        /// 0~3等级
+        /// </summary>
+        private int OptimizationLevel;
+
+        /// <summary>
+        /// 指示编译完成
+        /// </summary>
+        private bool Done;
+
+        internal void GetCode(ref List<QuadrupleNode> Code, ref List<QuadrupleNode> Var)
+        {
+            if (!Done)
+            {
+                Console.WriteLine("Please generate intermediate code first");
+                return;
+            }
+            Code = CodeSeg;
+            Var = VarSeg;
         }
 
         internal int GetCodeEntrance()
@@ -727,5 +728,6 @@ namespace Compiler
         private static readonly int MaxTempDataNum = 2333;
 
         private int CodeEntrance;
+        #endregion
     }
 }

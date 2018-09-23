@@ -5,222 +5,12 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
+    /// <summary>
+    /// 四元式优化
+    /// </summary>
     public class Optimize
     {
-        internal class Block
-        {
-            internal int Start, End;//[start,end]
-            internal List<DAGNode> DAG;
-            internal List<Block> Prev; //从何处跳转而来C:\Users\FSH\Source\Repos\PL0_Compiler\Compiler\Optimize.cs
-            internal List<Block> Next; //该基本块结束后跳转至何处,这是条件跳转条件不成立时跳转的地址
-            internal List<DAGNode> OutAvailableExpr;
-            internal List<DAGNode> InAvailableExpr;
-            internal List<DAGNode> ActiveVar;//保存偏移量
-            internal List<DAGNode> AvailableExpr;
-            internal List<DAGNode> ExprSet;//运算节点左右可能为temp,再获取其表达式节点
-            internal List<DAGNode> InputVar;
-            internal int Index;//在流程图中寻找强连通分量时DFS访问的顺序
-            internal int Addr;//表示在Blocks中的偏移量
-            internal bool AutoGenerate;//指示是否为循环优化自动生成
-            internal List<QuadrupleNode> JumpInsAddr;
-            internal Block()
-            {
-                Prev = new List<Block>();
-                Next = new List<Block>();
-                OutAvailableExpr = new List<DAGNode>();
-                ActiveVar = new List<DAGNode>();
-                AvailableExpr = new List<DAGNode>();
-                ExprSet = new List<DAGNode>();
-                InputVar = new List<DAGNode>();
-                Index = -1;
-                AutoGenerate = false;
-                JumpInsAddr = new List<QuadrupleNode>();
-            }
-        }
-        private class NaturalLoop
-        {
-            internal List<NaturalLoop> SubLoop; //子循环
-            internal Block PrevHeader;  //外提代码存放处
-            internal List<int> InnerBlock;      //循环内包含基本块
-            internal int LoopEntrance;
-            internal Dictionary<int, InductionVar> BaseInductionVar;
-            internal List<Triple> InductionTriple;
-            internal bool Contained;
-            internal Dictionary<int, Invariant> AssignDict;
-            internal BackEdge Edge;
-            internal NaturalLoop(BackEdge edge)
-            {
-                SubLoop = new List<NaturalLoop>();
-                PrevHeader = new Block();
-                PrevHeader.DAG = new List<DAGNode>();
-                InnerBlock = new List<int>();
-                BaseInductionVar = new Dictionary<int, InductionVar>();
-                InductionTriple = new List<Triple>();
-                Edge = edge;
-                LoopEntrance = -1;
-                Contained = false;
-                PrevHeader.AutoGenerate = true;
-            }
-            /// <summary>
-            /// 比较两个自然循环的关系
-            /// -2 : 循环入口相同，this 真包含于 loop，this作为loop的子循环
-            /// -1 : 循环入口相同，this 真包含 loop，loop作为this的子循环
-            ///  0 : 循环入口相同，this 等于 loop 或者 不完全相等，都作合并处理
-            ///  1 : 循环入口不同，this 真包含 loop, loop作为this的子循环
-            ///  2 : 循环入口不同，this 真包含于 loop ,this作为loop的子循环
-            ///  3 : 循环入口不同，this 独立于 loop，this 和 loop是独立循环
-            ///  4 : 暂定为Error
-            /// </summary>
-            /// <param name="loop"></param>
-            /// <returns></returns>
-            internal int CompareTo(NaturalLoop loop)
-            {
-                if (LoopEntrance == loop.LoopEntrance)
-                {
-                    int res = InnerBlock.Contain(loop.InnerBlock);
-                    switch (res)
-                    {
-                        case 1:
-                            return -1;
-                        case 2:
-                            return -2;
-                        case 3:
-                            return 0;
-                        case 4:
-                            return 0;
-                        default:
-                            return 4;
-                    }
-                }
-                else
-                {
-                    int res = InnerBlock.Contain(loop.InnerBlock);
-                    switch (res)
-                    {
-                        case 1:
-                            return 1;
-                        case 2:
-                            return 2;
-                        case 3:
-                            return 4; //入口不同最终相同怕是有鬼
-                        case 4:
-                            return 3;
-                        default:
-                            return 4;
-                    }
-                }
-            }
-        }
-        private struct BackEdge
-        {
-            internal Block Start, End;
-            internal BackEdge(Block start, Block end)
-            {
-                Start = start;
-                End = end;
-            }
-        }
-        private class Invariant
-        {
-            internal int Offset;
-            internal List<DAGNode> Host;
-            internal int Counter;
-            internal DAGNode Node;
-            internal int Addr;
-            internal Block Loc;
-            internal Invariant(Block block, List<DAGNode> host, int addr, DAGNode node, int offset)
-            {
-                Loc = block;
-                Offset = offset;
-                Host = host;
-                Counter = 1;
-                Addr = addr;
-                Node = node;
-            }
-        }
-        internal class Triple
-        {
-            internal struct Pair
-            {
-                internal int Offset, Coefficient;
-                internal Pair(int o, int c)
-                {
-                    Offset = o;
-                    Coefficient = c;
-                }
-            }
-            internal struct InitPair
-            {
-                internal DAGNode Value;
-                internal DAGType Operation;
-                internal InitPair(DAGNode node, DAGType op)
-                {
-                    Operation = op;
-                    Value = node;
-                }
-            }
-
-
-            internal DAGNode OriginNode;
-            internal List<DAGNode> Host;
-            internal Block Loc;
-            internal int Offset;//变量的偏移量
-            internal int Increase;//增量
-            internal List<InitPair> Init;//初始值
-            internal int Addr;
-            internal List<Pair> BaseInductionList;//含有的归纳表达式列表,以及系数
-            internal Triple(Block block, List<DAGNode> host, int addr, DAGNode originNode, int offset, int incr)
-            {
-                Loc = block;
-                OriginNode = originNode;
-                Host = host;
-                Offset = offset;
-                Increase = incr;
-                BaseInductionList = new List<Pair>();
-                Init = new List<InitPair>();
-                Addr = addr;
-            }
-            internal void ChangeStep(int incr)
-            {
-                Increase += incr;
-            }
-            internal void AddBaseInduction(int offset, int c)
-            {
-                BaseInductionList.Add(new Pair(offset, c));
-            }
-            internal void ChangeInit(DAGNode value, DAGType op)
-            {
-                if (op != DAGType.Add && op != DAGType.Sub)
-                {
-                    throw new Exception();
-                }
-                Init.Add(new InitPair(value, op));
-            }
-        }
-
-        private class InductionVar
-        {
-            internal List<DAGNode> Host;
-            internal int Offset;//变量在变量表中的偏移量
-            internal int Incr;
-            internal DAGNode Node;//所在赋值节点
-            internal DAGType Operator;
-            internal int Addr;//在Host中的地址(偏移量)
-            internal Block Loc;
-            internal InductionVar(Block block, List<DAGNode> host, int addr, DAGNode node, int offset, int incr, DAGType op)
-            {
-                Loc = block;
-                Host = host;
-                Offset = offset;
-                Incr = incr;
-                Node = node;
-                Operator = op;
-                Addr = addr;
-            }
-        }
-
-
-        internal Block EntranceBlock;
+        #region 功能实现
         public Optimize(List<QuadrupleNode> codeseg, List<QuadrupleNode> varseg, int code_entrance)
         {
             CodeSeg = codeseg;
@@ -245,6 +35,7 @@ namespace Compiler
                 }
             }
         }
+
         /*
          * 优化只改变block中的DAG
          * 压缩代码空间会导致基本块重组
@@ -563,6 +354,7 @@ namespace Compiler
                 DeleteUselessTemp(block);
             }
         }
+
         public void GlobalOptimization()
         {
             //时间复杂度O(n^4)警告
@@ -783,6 +575,7 @@ namespace Compiler
                 }
             }
         }
+
         public void LoopOptimization()
         {
             //获取处理完成的自然循环
@@ -825,6 +618,7 @@ namespace Compiler
             //如何从Loop重组为Block
 
         }
+
         public List<QuadrupleNode> GenerateCode()
         {
             //优化的时候需要保证优化完成前的代码跳转指向块
@@ -888,80 +682,9 @@ namespace Compiler
             CompressCodeSeg();
             return CodeSeg;
         }
+        #endregion
 
-        private void CreateLoopPreHeader(NaturalLoop loop)
-        {
-            foreach (var i in loop.SubLoop)
-            {
-                CreateLoopPreHeader(i);
-            }
-            Block start = Blocks[loop.InnerBlock[0]];
-            Block prev = loop.PrevHeader;
-            Blocks.Add(prev);
-            if (start.Prev.Count == 1 && start.Prev[0].AutoGenerate)//已经有preHeader，说明有内层循环，加在内层循环后面
-            {
-                //找到内层循环入口和当前循环入口相同的子循环，只可能有一个，否则该多层嵌套了
-                NaturalLoop sub = null;
-                foreach (var i in loop.SubLoop)
-                {
-                    if (i.LoopEntrance == loop.LoopEntrance)
-                    {
-                        sub = i;
-                        break;
-                    }
-                }
-                if (sub == null)//有自动生成的块没有相同入口子循环怕是撞鬼
-                {
-                    throw new Exception();
-                }
-                prev.Prev.Add(sub.Edge.Start);
-                prev.Next = sub.Edge.Start.Next;
-                sub.Edge.End.Next = new List<Block>();
-                //那么问题来了 start值是多少,随便设吧，无所谓的
-                sub.Edge.End.Next.Add(prev);
-                prev.Start = sub.Edge.Start.Next.Count == 0 ? sub.Edge.Start.End : sub.Edge.Start.Next[0].Start;
-                foreach (var i in prev.Next)
-                {
-                    i.Prev.Remove(sub.Edge.Start);
-                    i.Prev.Add(prev);
-                    /*
-                    foreach (var j in i.JumpInsAddr)
-                    {
-                        j.JumpAddr = prev;
-                        prev.JumpInsAddr.Add(j);
-                    }
-                    */
-                }
-                //跳转到sub.Edge.End的节点，不该转跳转到prev
-                //而关于prev.Next，跳转到这些地方的指令也不能改跳转到Prev
-                //prev.JumpInsAddr = sub.Edge.End.JumpInsAddr;
-                return;
-            }
-            //外层循环的preHeader应该放到内层循环之后
-            prev.Start = start.Start;
-            prev.Prev = start.Prev;
-            start.Prev = new List<Block>();
-            start.Prev.Add(prev);
-            prev.Prev.Remove(loop.Edge.Start);
-            foreach (var i in prev.Prev)
-            {
-                if (i != loop.Edge.Start)
-                {
-                    i.Next.Remove(start);
-                    i.Next.Add(prev);
-                }
-            }
-            prev.Next.Add(start);
-
-            prev.JumpInsAddr = start.JumpInsAddr;
-            foreach (var i in prev.JumpInsAddr)
-            {
-                if (i != CodeSeg[loop.Edge.Start.End])
-                {
-                    i.JumpAddr = prev;
-                }
-            }
-        }
+        #region 循环优化辅助函数
         private void InductionOptimization(NaturalLoop loop)
         {
             foreach (var i in loop.SubLoop)
@@ -1437,8 +1160,10 @@ namespace Compiler
                 {
                     var t = i.Init[j];
                     next.Type = t.Operation;
-                    next.Right = new DAGNode(DAGType.Add, GetSN(), i.Loc);
-                    next.Right.Left = t.Value;
+                    next.Right = new DAGNode(DAGType.Add, GetSN(), i.Loc)
+                    {
+                        Left = t.Value
+                    };
                     next = next.Right;
                 }
                 if (i.Init.Count == 1)
@@ -1454,6 +1179,7 @@ namespace Compiler
                 loop.PrevHeader.DAG.Add(node);
             }
         }
+
         private void InvariantOptimization(NaturalLoop loop)
         {
             Dictionary<int, Invariant> dict = new Dictionary<int, Invariant>();
@@ -1535,6 +1261,85 @@ namespace Compiler
             }
             loop.AssignDict = dict;
         }
+
+        private void CreateLoopPreHeader(NaturalLoop loop)
+        {
+            foreach (var i in loop.SubLoop)
+            {
+                CreateLoopPreHeader(i);
+            }
+            Block start = Blocks[loop.InnerBlock[0]];
+            Block prev = loop.PrevHeader;
+            Blocks.Add(prev);
+            if (start.Prev.Count == 1 && start.Prev[0].AutoGenerate)//已经有preHeader，说明有内层循环，加在内层循环后面
+            {
+                //找到内层循环入口和当前循环入口相同的子循环，只可能有一个，否则该多层嵌套了
+                NaturalLoop sub = null;
+                foreach (var i in loop.SubLoop)
+                {
+                    if (i.LoopEntrance == loop.LoopEntrance)
+                    {
+                        sub = i;
+                        break;
+                    }
+                }
+                if (sub == null)//有自动生成的块没有相同入口子循环怕是撞鬼
+                {
+                    throw new Exception();
+                }
+                prev.Prev.Add(sub.Edge.Start);
+                prev.Next = sub.Edge.Start.Next;
+                sub.Edge.End.Next = new List<Block>
+                {
+                    prev
+                };
+                //那么问题来了 start值是多少,随便设吧，无所谓的
+                prev.Start = sub.Edge.Start.Next.Count == 0 ? sub.Edge.Start.End : sub.Edge.Start.Next[0].Start;
+                foreach (var i in prev.Next)
+                {
+                    i.Prev.Remove(sub.Edge.Start);
+                    i.Prev.Add(prev);
+                    /*
+                    foreach (var j in i.JumpInsAddr)
+                    {
+                        j.JumpAddr = prev;
+                        prev.JumpInsAddr.Add(j);
+                    }
+                    */
+                }
+                //跳转到sub.Edge.End的节点，不该转跳转到prev
+                //而关于prev.Next，跳转到这些地方的指令也不能改跳转到Prev
+                //prev.JumpInsAddr = sub.Edge.End.JumpInsAddr;
+                return;
+            }
+            //外层循环的preHeader应该放到内层循环之后
+            prev.Start = start.Start;
+            prev.Prev = start.Prev;
+            start.Prev = new List<Block>
+            {
+                prev
+            };
+            prev.Prev.Remove(loop.Edge.Start);
+            foreach (var i in prev.Prev)
+            {
+                if (i != loop.Edge.Start)
+                {
+                    i.Next.Remove(start);
+                    i.Next.Add(prev);
+                }
+            }
+            prev.Next.Add(start);
+
+            prev.JumpInsAddr = start.JumpInsAddr;
+            foreach (var i in prev.JumpInsAddr)
+            {
+                if (i != CodeSeg[loop.Edge.Start.End])
+                {
+                    i.JumpAddr = prev;
+                }
+            }
+        }
+
         private void MoveNode(DAGNode node, Block Target)
         {
             node.Left.CurrentValue = node.Left;
@@ -1596,6 +1401,7 @@ namespace Compiler
             }
             */
         }
+
         private void GetAssignToDict(NaturalLoop loop, Dictionary<int, Invariant> dict)
         {
             for (int i = 0; i < loop.InnerBlock.Count; ++i)
@@ -1618,6 +1424,7 @@ namespace Compiler
                 }
             }
         }
+
         private void GetAssignFromPreHeader(NaturalLoop loop, Dictionary<int, Invariant> dict)
         {
             foreach (var node in loop.PrevHeader.DAG)
@@ -1635,6 +1442,7 @@ namespace Compiler
                 }
             }
         }
+
         private List<NaturalLoop> MergeNaturalLoop()
         {
             //O(n^3 lgn)复杂度警告
@@ -1726,6 +1534,7 @@ namespace Compiler
             //删除重复的
             return Loops.Distinct();
         }
+
         private void FindNaturalLoop(List<NaturalLoop> Loops)
         {
             //从EntranceBlock开始
@@ -1770,10 +1579,12 @@ namespace Compiler
                 Loops.Add(loop);
             }
         }
+
         /// <summary>
         /// DFS控制流图，生成遍历顺序，并获取回边
         /// </summary>
         /// <param name="backEdges"></param>
+
         private void GetBackEdge(List<BackEdge> backEdges)
         {
             bool[] v = new bool[Blocks.Count];
@@ -1807,48 +1618,19 @@ namespace Compiler
                 }
             }
         }
+
         private bool ExistEdge(Block b1, Block b2)
         {
             return b1.Next.Contains(b2);
         }
+
         private bool ExistReverseEdge(Block b1, Block b2)
         {
             return b1.Prev.Contains(b2);
         }
-        private void CompressCodeSeg()
-        {
-            RelocateJumpAddrToAddr();
-            //删除无用，然后重新进行代码划分，删除死代码
-            CodeSeg.RemoveRange(CodeAddr, CodeSeg.Count - CodeAddr);
-            DivideBlock();
-            RemoveDeadCode();
-            //代码之间会出现空代码，对Block:Start&End重定位
-            RemoveBlank();
-        }
-        private void RemoveBlank()
-        {
-            CodeAddr = 1;
-            RelocateJumpAddrToBlock();
-            foreach (var block in Blocks)
-            {
-                if (CodeAddr != block.Start)//该基本块与前一个基本块间有空隙
-                {
-                    int Step = block.Start - CodeAddr;
-                    for (int i = block.Start; i <= block.End; ++i)
-                    {
-                        if (CodeSeg[i] != null)
-                        {
-                            CodeSeg[CodeAddr++] = CodeSeg[i];
-                        }
-                    }
-                    block.Start = block.Start - Step;
-                    block.End = CodeAddr - 1;
-                }
-                CodeAddr = block.End + 1;//下一个待填写位置
-            }
-            CodeSeg.RemoveRange(CodeAddr, CodeSeg.Count - CodeAddr);
-            RelocateJumpAddrToAddr();
-        }
+        #endregion
+
+        #region 全局优化辅助函数
         private void IterativeAliveVarAnalysis()
         {
             foreach (var block in Blocks)
@@ -1932,6 +1714,7 @@ namespace Compiler
                 }
             }
         }
+
         private void IterativeAvailableExpressionAnalysis()
         {
             foreach (var block in Blocks)
@@ -1998,78 +1781,9 @@ namespace Compiler
                 }
             }
         }
-        private void RelocateJumpAddrToAddr()
-        {
-            int JumpValue = Convert.ToInt32(QuadrupleType.JMP);
-            foreach (var i in CodeSeg)
-            {
-                if (i == null)
-                {
-                    continue;
-                }
-                if (Convert.ToInt32(i.Type) <= JumpValue)
-                {
-                    i.Result = i.JumpAddr.Start;
-                }
-                else if (i.Type == QuadrupleType.Call)
-                {
-                    i.Result = i.JumpAddr.Start;
-                }
-            }
-        }
-        private void RemoveDeadCode()
-        {
-            foreach (var i in Blocks)
-            {
-                for (int k = i.Start; k <= i.End; ++k)
-                {
-                    visited[k] = true;
-                }
-            }
-            for (int i = 1; i < CodeSeg.Count; ++i)
-            {
-                if (visited[i] == false)
-                {
-                    CodeSeg[i] = null;
-                }
-            }
-        }
-        private DAGNode GetValue(DAGNode node)
-        {
-            if (node.Type == DAGType.Temp) //必为运算结果
-            {
-                var result = node.CurrentValue;
-                if (result.Type != DAGType.Temp)
-                {
-                    return GetValue(result);
-                }
-                if (result.Offset != node.Offset)
-                {
-                    return GetValue(result);
-                }
-                return node;
-            }
-            else if (node.Type == DAGType.Var)
-            {
-                if (node.CurrentValue.Type == DAGType.Temp)
-                {
-                    return GetValue(node.CurrentValue);
-                }
-                return node.CurrentValue;
-            }
-            else if (node.Type == DAGType.Num)
-            {
-                return node;
-            }
-            else//为表达式
-            {
-                return node;
-            }
+        #endregion
 
-        }
-        private int CodeAddr;
-        private int Temp;
-
+        #region 生成代码
         private void GenerateAutoGeneratedCode(DAGNode node, List<QuadrupleNode> Code)
         {
             node = GetValue(node);
@@ -2198,6 +1912,7 @@ namespace Compiler
                 node.Tags.Add(new DAGNode(DAGType.AutoTemp, GetSN(), null) { Value = Temp });
             }
         }
+
         private void DAG2Code(Block block, Dictionary<int, Block> dict, List<QuadrupleNode> Code)
         {
             //压缩代码空间，去掉空白代码部分(被优化掉)
@@ -2419,57 +2134,7 @@ namespace Compiler
             //空白区域置null
             block.End = end;
         }
-        private DAGNode GetNode(object n, List<DAGNode> Nodes, Block block)
-        {
-            //返回的节点为Temp,Temp首先会被赋值,CurrentValue必不为空
-            //返回的节点为Var ,Var不一定会被赋值,CurrentValue可能为空
-            //返回节点为Num
-            if (n is int)//临时变量
-            {
-                DAGNode tmp = new DAGNode(DAGType.Temp, GetSN(), block)
-                {
-                    Value = Convert.ToInt32(n)
-                };
-                DAGNode match = FindMatchNode(tmp, Nodes);
-                if (match == null)
-                {
-                    Nodes.Add(tmp);
-                    return tmp;
-                }
-                return match;
-            }
-            else if (n is string) //立即数
-            {
-                DAGNode tmp = new DAGNode(DAGType.Num, GetSN(), block)
-                {
-                    Value = Convert.ToInt64(((string)n).Substring(1)) //转为long防止计算时溢出
-                };
-                DAGNode match = FindMatchNode(tmp, Nodes);
-                if (match == null)
-                {
-                    Nodes.Add(tmp);
-                    return tmp;
-                }
-                match.CurrentValue.Add(tmp); //代表引用次数，为1则删除
-                return match;
-            }
-            else if (n is QuadrupleNode)
-            {
-                DAGNode tmp = new DAGNode(DAGType.Var, GetSN(), block)
-                {
-                    Offset = ((QuadrupleNode)n).Offset
-                };
-                DAGNode match = FindMatchNode(tmp, Nodes);
-                if (match == null)
-                {
-                    Nodes.Add(tmp);
-                    tmp.CurrentValue = tmp;
-                    return tmp;
-                }
-                return match;
-            }
-            return null;
-        }
+
         private void DeleteUselessTemp(Block block)
         {
             //消除死代码，针对临时变量
@@ -2659,86 +2324,50 @@ namespace Compiler
                 Nodes.Remove(i);
             }
         }
-        private object ConvertNode(DAGNode n)
+        #endregion
+
+        #region 重组基本块
+        private void RelocateJumpAddrToAddr()
         {
-            if (n.Type == DAGType.Num)
+            int JumpValue = Convert.ToInt32(QuadrupleType.JMP);
+            foreach (var i in CodeSeg)
             {
-                return $"#{n.Value}";
-            }
-            else if (n.Type == DAGType.Var)//不应该出现，变量不能直接累加到临时变量，应该首先MOV到临时变量,若出现则查找是否以及赋值给临时变量
-            {
-                foreach (var k in n.Tags)
+                if (i == null)
                 {
-                    if (k.Type == DAGType.Temp)
-                    {
-                        return (int)k.Value;
-                    }
+                    continue;
                 }
-                return VarSeg[n.Offset];
-            }
-            else if (n.Type == DAGType.Temp) //尽量用常数替换
-            {
-                if (n.CurrentValue.Type == DAGType.Num)
+                if (Convert.ToInt32(i.Type) <= JumpValue)
                 {
-                    return "#" + n.CurrentValue.Value;
+                    i.Result = i.JumpAddr.Start;
                 }
-                return (int)n.Value;
-            }
-            else if (n.Type == DAGType.Anonymous)
-            {
-                return VarSeg[n.Offset];
-            }
-            else//内部运算节点，从其Tag中找到一个临时变量，运算值在之前必然赋值给了一个临时变量
-            {
-                int temp = -1;
-                foreach (var k in n.Tags)
+                else if (i.Type == QuadrupleType.Call)
                 {
-                    if (k.Type == DAGType.Temp)
-                    {
-                        return (int)k.Value;
-                    }
-                }
-                if (temp == -1)
-                {
-                    throw new Exception("DAG生成代码过程中遇到了错误");
+                    i.Result = i.JumpAddr.Start;
                 }
             }
-            return null;
         }
-        private bool IsExpressionNode(DAGNode node)
+
+        private void RemoveDeadCode()
         {
-            if (node == null)
+            foreach (var i in Blocks)
             {
-                return false;
-            }
-            if (node.Type == DAGType.Sub || node.Type == DAGType.Mul || node.Type == DAGType.Div || node.Type == DAGType.Add)
-            {
-                return true;
-            }
-            return false;
-        }
-        private void ResetSN()
-        {
-            SerialNumber = 0;
-        }
-        private int GetSN()
-        {
-            return SerialNumber++;
-        }
-        private DAGNode FindMatchNode(DAGNode node, List<DAGNode> list)
-        {
-            foreach (var i in list)
-            {
-                if (node.Equals(i))
+                for (int k = i.Start; k <= i.End; ++k)
                 {
-                    return i;
+                    visited[k] = true;
                 }
             }
-            return null;
+            for (int i = 1; i < CodeSeg.Count; ++i)
+            {
+                if (visited[i] == false)
+                {
+                    CodeSeg[i] = null;
+                }
+            }
         }
         /// <summary>
         /// 会导致基本块的重划分
         /// </summary>
+
         private void DivideBlock()
         {
             //划分基本块，同时创建好控制流中基本块的前驱后继
@@ -2791,6 +2420,7 @@ namespace Compiler
             }
             RelocateJumpAddrToBlock();
         }
+
         private void RelocateJumpAddrToBlock()
         {
             //重定向节点的跳转地址为对基本块的引用
@@ -2855,6 +2485,213 @@ namespace Compiler
                 }
             }
         }
+
+        private void CompressCodeSeg()
+        {
+            RelocateJumpAddrToAddr();
+            //删除无用，然后重新进行代码划分，删除死代码
+            CodeSeg.RemoveRange(CodeAddr, CodeSeg.Count - CodeAddr);
+            DivideBlock();
+            RemoveDeadCode();
+            //代码之间会出现空代码，对Block:Start&End重定位
+            RemoveBlank();
+        }
+
+        private void RemoveBlank()
+        {
+            CodeAddr = 1;
+            RelocateJumpAddrToBlock();
+            foreach (var block in Blocks)
+            {
+                if (CodeAddr != block.Start)//该基本块与前一个基本块间有空隙
+                {
+                    int Step = block.Start - CodeAddr;
+                    for (int i = block.Start; i <= block.End; ++i)
+                    {
+                        if (CodeSeg[i] != null)
+                        {
+                            CodeSeg[CodeAddr++] = CodeSeg[i];
+                        }
+                    }
+                    block.Start = block.Start - Step;
+                    block.End = CodeAddr - 1;
+                }
+                CodeAddr = block.End + 1;//下一个待填写位置
+            }
+            CodeSeg.RemoveRange(CodeAddr, CodeSeg.Count - CodeAddr);
+            RelocateJumpAddrToAddr();
+        }
+        #endregion
+
+        #region 成员和辅助函数
+        private DAGNode FindMatchNode(DAGNode node, List<DAGNode> list)
+        {
+            foreach (var i in list)
+            {
+                if (node.Equals(i))
+                {
+                    return i;
+                }
+            }
+            return null;
+        }
+
+        private DAGNode GetValue(DAGNode node)
+        {
+            if (node.Type == DAGType.Temp) //必为运算结果
+            {
+                var result = node.CurrentValue;
+                if (result.Type != DAGType.Temp)
+                {
+                    return GetValue(result);
+                }
+                if (result.Offset != node.Offset)
+                {
+                    return GetValue(result);
+                }
+                return node;
+            }
+            else if (node.Type == DAGType.Var)
+            {
+                if (node.CurrentValue.Type == DAGType.Temp)
+                {
+                    return GetValue(node.CurrentValue);
+                }
+                return node.CurrentValue;
+            }
+            else if (node.Type == DAGType.Num)
+            {
+                return node;
+            }
+            else//为表达式
+            {
+                return node;
+            }
+
+        }
+
+        private DAGNode GetNode(object n, List<DAGNode> Nodes, Block block)
+        {
+            //返回的节点为Temp,Temp首先会被赋值,CurrentValue必不为空
+            //返回的节点为Var ,Var不一定会被赋值,CurrentValue可能为空
+            //返回节点为Num
+            if (n is int)//临时变量
+            {
+                DAGNode tmp = new DAGNode(DAGType.Temp, GetSN(), block)
+                {
+                    Value = Convert.ToInt32(n)
+                };
+                DAGNode match = FindMatchNode(tmp, Nodes);
+                if (match == null)
+                {
+                    Nodes.Add(tmp);
+                    return tmp;
+                }
+                return match;
+            }
+            else if (n is string) //立即数
+            {
+                DAGNode tmp = new DAGNode(DAGType.Num, GetSN(), block)
+                {
+                    Value = Convert.ToInt64(((string)n).Substring(1)) //转为long防止计算时溢出
+                };
+                DAGNode match = FindMatchNode(tmp, Nodes);
+                if (match == null)
+                {
+                    Nodes.Add(tmp);
+                    return tmp;
+                }
+                match.CurrentValue.Add(tmp); //代表引用次数，为1则删除
+                return match;
+            }
+            else if (n is QuadrupleNode)
+            {
+                DAGNode tmp = new DAGNode(DAGType.Var, GetSN(), block)
+                {
+                    Offset = ((QuadrupleNode)n).Offset
+                };
+                DAGNode match = FindMatchNode(tmp, Nodes);
+                if (match == null)
+                {
+                    Nodes.Add(tmp);
+                    tmp.CurrentValue = tmp;
+                    return tmp;
+                }
+                return match;
+            }
+            return null;
+        }
+
+        private object ConvertNode(DAGNode n)
+        {
+            if (n.Type == DAGType.Num)
+            {
+                return $"#{n.Value}";
+            }
+            else if (n.Type == DAGType.Var)//不应该出现，变量不能直接累加到临时变量，应该首先MOV到临时变量,若出现则查找是否以及赋值给临时变量
+            {
+                foreach (var k in n.Tags)
+                {
+                    if (k.Type == DAGType.Temp)
+                    {
+                        return (int)k.Value;
+                    }
+                }
+                return VarSeg[n.Offset];
+            }
+            else if (n.Type == DAGType.Temp) //尽量用常数替换
+            {
+                if (n.CurrentValue.Type == DAGType.Num)
+                {
+                    return "#" + n.CurrentValue.Value;
+                }
+                return (int)n.Value;
+            }
+            else if (n.Type == DAGType.Anonymous)
+            {
+                return VarSeg[n.Offset];
+            }
+            else//内部运算节点，从其Tag中找到一个临时变量，运算值在之前必然赋值给了一个临时变量
+            {
+                int temp = -1;
+                foreach (var k in n.Tags)
+                {
+                    if (k.Type == DAGType.Temp)
+                    {
+                        return (int)k.Value;
+                    }
+                }
+                if (temp == -1)
+                {
+                    throw new Exception("DAG生成代码过程中遇到了错误");
+                }
+            }
+            return null;
+        }
+
+        private bool IsExpressionNode(DAGNode node)
+        {
+            if (node == null)
+            {
+                return false;
+            }
+            if (node.Type == DAGType.Sub || node.Type == DAGType.Mul || node.Type == DAGType.Div || node.Type == DAGType.Add)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private void ResetSN()
+        {
+            SerialNumber = 0;
+        }
+
+        private int GetSN()
+        {
+            return SerialNumber++;
+        }
+
         private void FindEntranceStatement(Queue<int> EntranceQueue)
         {
             Queue<int> q = new Queue<int>();
@@ -2896,6 +2733,7 @@ namespace Compiler
                 }
             }
         }
+
         private bool IsConditionJump(int index)
         {
             if (index >= CodeSeg.Count)
@@ -2913,6 +2751,7 @@ namespace Compiler
             }
             return false;
         }
+
         private bool NotJumpOrReturn(int index)
         {
             if (index >= CodeSeg.Count)
@@ -2937,5 +2776,247 @@ namespace Compiler
         private bool[] visited;
         private int SerialNumber = 0;
         private bool[] DectectedInductionVar;
+        private int CodeAddr;
+        private int Temp;
+        internal Block EntranceBlock;
+        #endregion
+
+        #region 辅助类声明
+        /// <summary>
+        /// 基本块
+        /// </summary>
+        internal class Block
+        {
+            internal int Start, End;//[start,end]
+            internal List<DAGNode> DAG;
+            internal List<Block> Prev; //从何处跳转而来C:\Users\FSH\Source\Repos\PL0_Compiler\Compiler\Optimize.cs
+            internal List<Block> Next; //该基本块结束后跳转至何处,这是条件跳转条件不成立时跳转的地址
+            internal List<DAGNode> OutAvailableExpr;
+            internal List<DAGNode> InAvailableExpr;
+            internal List<DAGNode> ActiveVar;//保存偏移量
+            internal List<DAGNode> AvailableExpr;
+            internal List<DAGNode> ExprSet;//运算节点左右可能为temp,再获取其表达式节点
+            internal List<DAGNode> InputVar;
+            internal int Index;//在流程图中寻找强连通分量时DFS访问的顺序
+            internal int Addr;//表示在Blocks中的偏移量
+            internal bool AutoGenerate;//指示是否为循环优化自动生成
+            internal List<QuadrupleNode> JumpInsAddr;
+            internal Block()
+            {
+                Prev = new List<Block>();
+                Next = new List<Block>();
+                OutAvailableExpr = new List<DAGNode>();
+                ActiveVar = new List<DAGNode>();
+                AvailableExpr = new List<DAGNode>();
+                ExprSet = new List<DAGNode>();
+                InputVar = new List<DAGNode>();
+                Index = -1;
+                AutoGenerate = false;
+                JumpInsAddr = new List<QuadrupleNode>();
+            }
+        }
+
+        /// <summary>
+        /// 自然循环
+        /// </summary>
+        private class NaturalLoop
+        {
+            internal List<NaturalLoop> SubLoop; //子循环
+            internal Block PrevHeader;  //外提代码存放处
+            internal List<int> InnerBlock;      //循环内包含基本块
+            internal int LoopEntrance;
+            internal Dictionary<int, InductionVar> BaseInductionVar;
+            internal List<Triple> InductionTriple;
+            internal bool Contained;
+            internal Dictionary<int, Invariant> AssignDict;
+            internal BackEdge Edge;
+            internal NaturalLoop(BackEdge edge)
+            {
+                SubLoop = new List<NaturalLoop>();
+                PrevHeader = new Block
+                {
+                    DAG = new List<DAGNode>()
+                };
+                InnerBlock = new List<int>();
+                BaseInductionVar = new Dictionary<int, InductionVar>();
+                InductionTriple = new List<Triple>();
+                Edge = edge;
+                LoopEntrance = -1;
+                Contained = false;
+                PrevHeader.AutoGenerate = true;
+            }
+            /// <summary>
+            /// 比较两个自然循环的关系
+            /// -2 : 循环入口相同，this 真包含于 loop，this作为loop的子循环
+            /// -1 : 循环入口相同，this 真包含 loop，loop作为this的子循环
+            ///  0 : 循环入口相同，this 等于 loop 或者 不完全相等，都作合并处理
+            ///  1 : 循环入口不同，this 真包含 loop, loop作为this的子循环
+            ///  2 : 循环入口不同，this 真包含于 loop ,this作为loop的子循环
+            ///  3 : 循环入口不同，this 独立于 loop，this 和 loop是独立循环
+            ///  4 : 暂定为Error
+            /// </summary>
+            /// <param name="loop"></param>
+            /// <returns></returns>
+            internal int CompareTo(NaturalLoop loop)
+            {
+                if (LoopEntrance == loop.LoopEntrance)
+                {
+                    int res = InnerBlock.Contain(loop.InnerBlock);
+                    switch (res)
+                    {
+                        case 1:
+                            return -1;
+                        case 2:
+                            return -2;
+                        case 3:
+                            return 0;
+                        case 4:
+                            return 0;
+                        default:
+                            return 4;
+                    }
+                }
+                else
+                {
+                    int res = InnerBlock.Contain(loop.InnerBlock);
+                    switch (res)
+                    {
+                        case 1:
+                            return 1;
+                        case 2:
+                            return 2;
+                        case 3:
+                            return 4; //入口不同最终相同怕是有鬼
+                        case 4:
+                            return 3;
+                        default:
+                            return 4;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 回边
+        /// </summary>
+        private struct BackEdge
+        {
+            internal Block Start, End;
+            internal BackEdge(Block start, Block end)
+            {
+                Start = start;
+                End = end;
+            }
+        }
+
+        /// <summary>
+        /// 循环不变式
+        /// </summary>
+        private class Invariant
+        {
+            internal int Offset;
+            internal List<DAGNode> Host;
+            internal int Counter;
+            internal DAGNode Node;
+            internal int Addr;
+            internal Block Loc;
+            internal Invariant(Block block, List<DAGNode> host, int addr, DAGNode node, int offset)
+            {
+                Loc = block;
+                Offset = offset;
+                Host = host;
+                Counter = 1;
+                Addr = addr;
+                Node = node;
+            }
+        }
+
+        /// <summary>
+        /// 循环不变式的具体记录
+        /// </summary>
+        internal class Triple
+        {
+            internal struct Pair
+            {
+                internal int Offset, Coefficient;
+                internal Pair(int o, int c)
+                {
+                    Offset = o;
+                    Coefficient = c;
+                }
+            }
+            internal struct InitPair
+            {
+                internal DAGNode Value;
+                internal DAGType Operation;
+                internal InitPair(DAGNode node, DAGType op)
+                {
+                    Operation = op;
+                    Value = node;
+                }
+            }
+
+
+            internal DAGNode OriginNode;
+            internal List<DAGNode> Host;
+            internal Block Loc;
+            internal int Offset;//变量的偏移量
+            internal int Increase;//增量
+            internal List<InitPair> Init;//初始值
+            internal int Addr;
+            internal List<Pair> BaseInductionList;//含有的归纳表达式列表,以及系数
+            internal Triple(Block block, List<DAGNode> host, int addr, DAGNode originNode, int offset, int incr)
+            {
+                Loc = block;
+                OriginNode = originNode;
+                Host = host;
+                Offset = offset;
+                Increase = incr;
+                BaseInductionList = new List<Pair>();
+                Init = new List<InitPair>();
+                Addr = addr;
+            }
+            internal void ChangeStep(int incr)
+            {
+                Increase += incr;
+            }
+            internal void AddBaseInduction(int offset, int c)
+            {
+                BaseInductionList.Add(new Pair(offset, c));
+            }
+            internal void ChangeInit(DAGNode value, DAGType op)
+            {
+                if (op != DAGType.Add && op != DAGType.Sub)
+                {
+                    throw new Exception();
+                }
+                Init.Add(new InitPair(value, op));
+            }
+        }
+
+        /// <summary>
+        /// 归纳变量
+        /// </summary>
+        private class InductionVar
+        {
+            internal List<DAGNode> Host;
+            internal int Offset;//变量在变量表中的偏移量
+            internal int Incr;
+            internal DAGNode Node;//所在赋值节点
+            internal DAGType Operator;
+            internal int Addr;//在Host中的地址(偏移量)
+            internal Block Loc;
+            internal InductionVar(Block block, List<DAGNode> host, int addr, DAGNode node, int offset, int incr, DAGType op)
+            {
+                Loc = block;
+                Host = host;
+                Offset = offset;
+                Incr = incr;
+                Node = node;
+                Operator = op;
+                Addr = addr;
+            }
+        }
+        #endregion
     }
 }
