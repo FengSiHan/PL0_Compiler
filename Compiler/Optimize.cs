@@ -1542,10 +1542,20 @@ namespace Compiler
                     break;
                 }
             }
-            tmp.Tags.RemoveAt(0);
-            if (tmp.Tags.Count == 0)
+            if (!node.Host.AutoGenerate)
             {
-                node.Host.DAG.Remove(tmp);
+                try
+                {
+                    tmp.Tags.RemoveAt(0);
+                }
+                catch
+                {
+
+                }
+                if (tmp.Tags.Count == 0)
+                {
+                    node.Host.DAG.Remove(tmp);
+                }
             }
             /*
             if (node.Type == DAGType.Var)
@@ -1642,7 +1652,7 @@ namespace Compiler
             {
                 v[i] = false;
             }
-            for (int i = 1; i < Loops.Count - 1; ++i)
+            for (int i = 1; i < Loops.Count; ++i)
             {
                 if (v[i])
                 {
