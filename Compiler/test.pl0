@@ -1,20 +1,13 @@
 ﻿const a=5,b=4,c=3;
 var e,d,k,i,j;
-procedure test;
-	var h;
-	read(h);
 begin
-	while d > 6
-	do
-		begin
-			while odd k
-			do
-				begin
-					i := i + 1;
-					j := j + 2;
-					k := i * 2 - 5 * j;
-					write(k)
-				end;
-			write(d)
-		end
+repeat
+	begin	
+		read(e);
+		k := 6 * i;
+		i := i + 1;
+		write(k);
+		write(i)
+	end
+until k = 5
 end.

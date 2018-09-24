@@ -78,7 +78,7 @@ namespace Compiler
         /// <summary>
         /// 打印四元式
         /// </summary>
-        public void PrintQCode()
+        public void PrintCode()
         {
             if (!Done)
             {
@@ -270,6 +270,7 @@ namespace Compiler
         {
             if (FreeDataIndex == MaxTempDataNum)
             {
+                Console.WriteLine("不用看了程序崩了，需要2333个临时变量认真的？");
                 return MaxTempDataNum;
             }
             return FreeDataIndex++;
@@ -742,7 +743,7 @@ namespace Compiler
 
         public static readonly int MagicNumber = 2085433141;
 
-        private static readonly int MaxTempDataNum = 2333;
+        internal static readonly int MaxTempDataNum = 2333;
 
         private int CodeEntrance;
         #endregion

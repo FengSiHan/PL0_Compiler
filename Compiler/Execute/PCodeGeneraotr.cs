@@ -15,17 +15,21 @@ namespace Compiler
             Programs = new List<PNode>();
         }
 
-        public void GeneratePCode(string Text, int Level)
+        public List<PNode> GenerateCode(string Text, int Level)
         {
             GetIL.GenerateCode(Text, Level);
             if (GetIL.NumOfError > 0)
             {
-                GetIL.PrintError();
-                Console.WriteLine("Please correct all errors before generaing code");
-                return;
+                return null;
             }
             GetIL.GetCode(ref CodeSeg, ref VarSeg);
             GetPCode();
+            return Programs;
+        }
+
+        public void PrintError()
+        {
+            GetIL.PrintError();
         }
 
         public void PrintCode()
@@ -119,6 +123,19 @@ namespace Compiler
                     TranslateOpr(Node);
                     break;
                 case QuadrupleType.Assign:
+                    if (Node.Arg2 is int)
+                    {
+                        Add(new PNode(PCode.LOD, (int)Node.Arg2, 2));
+                    }
+                    else if (Node.Arg2 is string)
+                    {
+                        int arg = int.Parse(((string)Node.Arg2).Substring(1));
+                        Add(new PNode(PCode.LIT, arg, 1));
+                    }
+                    else
+                    {
+                        Add(new PNode(PCode.LOD, ((QuadrupleNode)(Node.Arg2)).Offset, 3));
+                    }
                     Add(new PNode(PCode.STO, ((QuadrupleNode)(Node.Arg1)).Offset, 3));
                     break;
                 case QuadrupleType.Write:
@@ -218,6 +235,7 @@ namespace Compiler
                     Add(new PNode(PCode.DIV));
                     break;
             }
+            Add(new PNode(PCode.STO, (int)Node.Result, 2));
         }
 
         private void LoadArg(QuadrupleNode Node)
@@ -259,12 +277,13 @@ namespace Compiler
 
         private List<PNode> Programs;
         private ILGenerator GetIL;
-        private List<QuadrupleNode> VarSeg, CodeSeg;
+        internal List<QuadrupleNode> VarSeg;
+        private List<QuadrupleNode> CodeSeg;
         private int IsJump = Convert.ToInt32(QuadrupleType.JMP);
     }
 
 
-    enum PCode
+    public enum PCode
     {
         //lit 0, a : load constant a    读取常量a到数据栈栈顶
         //opr 0, a : execute operation a    执行a运算
@@ -300,13 +319,13 @@ namespace Compiler
         GEQ,//>=
         XOR //^
     }
-    class PNode
+    public class PNode
     {
-        internal readonly PCode INS;
+        public readonly PCode INS;
 
-        internal int Arg;
+        public int Arg;
 
-        internal readonly int DataType;
+        public readonly int DataType;
 
         /// <summary>
         /// Type: 1:立即数，2:临时变量，3:变量，4:地址

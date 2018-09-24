@@ -13,11 +13,8 @@ namespace Compiler
         public static void Main(string[] arg)
         {
             string code = File.ReadAllText($"../../test.pl0");
-            PCodeGeneraotr g = new PCodeGeneraotr();
-            g.GeneratePCode(code, 0);
-            g.PrintCode();
-            Console.WriteLine("输入任意键结束...");
-            Console.ReadKey();
+            VirtualMachine vm = new VirtualMachine();
+            vm.Run(code, 0);
         }
     }
 }
