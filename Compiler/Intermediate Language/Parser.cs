@@ -1137,7 +1137,7 @@ namespace Compiler
         }
 
         private readonly IEnumerator<Token> tokens;
-        private ErrorMsgList ErrorMsg;
+        public ErrorMsgList ErrorMsg;
         private HashSet<string> Keys;
         private List<Token> SkipControlList;
         private AstNode AstTree;
