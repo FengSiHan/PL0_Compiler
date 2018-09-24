@@ -379,6 +379,7 @@ namespace Compiler
                         proc.Offset = CodeSeg.Count;//调用直接跳转到当前行
                         GetQuadruples(i.Right.Right);
                         CodeSeg.Add(new QuadrupleNode(QuadrupleType.Return));
+                        FreeAllTempData();
                     }
                     break;
                 case ExprType.Statements:
@@ -427,13 +428,13 @@ namespace Compiler
                     }
 
                     CodeSeg.Add(node);
-                    GetQuadruples(now.Left.Right);
                     FreeAllTempData();
+                    GetQuadruples(now.Left.Right);
                     node.Result = CodeSeg.Count;
                     //不成立跳转到隶属then的语句的之后
                     //跳转指令的result(即目标地址)需要指向一个节点
                     //扫描一遍回填
-                    if (now.Right != null)//没有else
+                    if (now.Right != null)//有else
                     {
                         //if x then y else z ; t
                         QuadrupleNode LeaveIf = new QuadrupleNode(QuadrupleType.JMP);//goto t
@@ -444,6 +445,7 @@ namespace Compiler
                         LeaveIf.Result = CodeSeg.Count;
                         FreeAllTempData();
                     }
+                    FreeAllTempData();
                     break;
                 case ExprType.RepeatUntil:
                     node = new QuadrupleNode(GetOppositeJumpInstruction(now.Left.Info))
@@ -517,7 +519,7 @@ namespace Compiler
                     }
 
                     CodeSeg.Add(back);
-                    node.Result = CodeSeg.Count;
+                    node.Result = CodeSeg.Count ;
                     FreeAllTempData();
                     break;
                 case ExprType.Expr:

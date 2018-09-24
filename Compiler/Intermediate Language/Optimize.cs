@@ -1921,6 +1921,7 @@ namespace Compiler
             if (block.AutoGenerate)
             {
                 //只有Assign类型，但要对每个表达式自展开
+                Temp = -1;
                 block.Start = CodeAddr;
                 foreach (var i in block.DAG)
                 {
