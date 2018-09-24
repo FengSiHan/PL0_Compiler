@@ -149,6 +149,7 @@ namespace Compiler
                 throw new SyntaxErrorException("Text is null", new Position(0, 0));
             }
         }
+
         private bool MoveNext()
         {
             if (!chars.MoveNext())
@@ -166,6 +167,7 @@ namespace Compiler
             }
             return true;
         }
+
         private string GetSubstringByCond(char peek, ConditionFunc Condition)//Condition is a regex pattern string
         {
             StringBuilder str = new StringBuilder();
@@ -182,6 +184,7 @@ namespace Compiler
             dont_move = false;
             return str.ToString();
         }
+
         private delegate bool ConditionFunc(char c);
         private readonly IEnumerable<char> Text;
         private int Row, Col;

@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    class PCodeGeneraotr
+    public class PCodeGeneraotr
     {
         public PCodeGeneraotr()
         {
             GetIL = new ILGenerator();
             Programs = new List<PNode>();
         }
+
         public void GeneratePCode(string Text, int Level)
         {
             GetIL.GenerateCode(Text, Level);
@@ -26,6 +27,7 @@ namespace Compiler
             GetIL.GetCode(ref CodeSeg, ref VarSeg);
             GetPCode();
         }
+
         public void PrintCode()
         {
             if (Programs.Count == 0)
@@ -37,9 +39,45 @@ namespace Compiler
             foreach (var i in Programs)
             {
                 Console.Write(string.Format("{0,-3}-> ", index++));
-                Console.WriteLine(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
+                Console.Write(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
+                switch (i.INS)
+                {
+                    case PCode.ADD:
+                    case PCode.DIV:
+                    case PCode.EQL:
+                    case PCode.EXP:
+                    case PCode.GEQ:
+                    case PCode.GRT:
+                    case PCode.HALT:
+                    case PCode.LER:
+                    case PCode.LSS:
+                    case PCode.MOD:
+                    case PCode.MUL:
+                    case PCode.NEQ:
+                    case PCode.SUB:
+                    case PCode.XOR:
+                    case PCode.WRT:
+                        Console.WriteLine();
+                        break;
+                    default:
+                        switch (i.DataType)
+                        {
+                            case 1:
+                            case 4:
+                                Console.WriteLine(i.Arg);
+                                break;
+                            case 2:
+                                Console.WriteLine($"t{i.Arg}");
+                                break;
+                            case 3:
+                                Console.WriteLine(VarSeg[i.Arg].Value);
+                                break;
+                        }
+                        break;
+                }
             }
         }
+
         private void GetPCode()
         {
             Programs.Clear();
@@ -47,10 +85,19 @@ namespace Compiler
             {
                 Translate(i);
             }
+            foreach (var i in Programs)
+            {
+                if (i.INS == PCode.JMP || i.INS == PCode.JPC)
+                {
+                    i.Arg = CodeSeg[i.Arg].Start;
+                }
+            }
             Programs[Programs.Count - 1] = new PNode(PCode.HALT);
         }
+
         private void Translate(QuadrupleNode Node)
         {
+            Node.Start = Programs.Count;
             int typeV = Convert.ToInt32(Node.Type);
             if (typeV <= IsJump)
             {
@@ -94,6 +141,7 @@ namespace Compiler
             }
 
         }
+
         private void TranslateJump(QuadrupleNode Node)
         {
             if (Node.Type == QuadrupleType.JMP)
@@ -115,7 +163,7 @@ namespace Compiler
                 else
                 {
                     var t = Node.Arg1 as QuadrupleNode;
-                    Add(new PNode(PCode.STO, t.Offset, 3));
+                    Add(new PNode(PCode.LOD, t.Offset, 3));
                 }
                 Add(new PNode(PCode.LIT, 2, 1));
                 Add(new PNode(PCode.MOD));
@@ -124,7 +172,7 @@ namespace Compiler
                     Add(new PNode(PCode.LIT, 1, 1));
                     Add(new PNode(PCode.XOR));
                 }
-                Add(new PNode(PCode.JPC));
+                Add(new PNode(PCode.JPC, (int)Node.Result, 4));
                 return;
             }
             LoadArg(Node);
@@ -149,8 +197,9 @@ namespace Compiler
                     Add(new PNode(PCode.EQL));
                     break;
             }
-            Add(new PNode(PCode.JPC));
+            Add(new PNode(PCode.JPC, (int)Node.Result, 4));
         }
+
         private void TranslateOpr(QuadrupleNode Node)
         {
             LoadArg(Node);
@@ -170,6 +219,7 @@ namespace Compiler
                     break;
             }
         }
+
         private void LoadArg(QuadrupleNode Node)
         {
             if (Node.Arg1 is int)
@@ -184,7 +234,7 @@ namespace Compiler
             else
             {
                 var t = Node.Arg1 as QuadrupleNode;
-                Add(new PNode(PCode.STO, t.Offset, 3));
+                Add(new PNode(PCode.LOD, t.Offset, 3));
             }
             if (Node.Arg2 is int)
             {
@@ -198,13 +248,15 @@ namespace Compiler
             else
             {
                 var t = Node.Arg2 as QuadrupleNode;
-                Add(new PNode(PCode.STO, t.Offset, 3));
+                Add(new PNode(PCode.LOD, t.Offset, 3));
             }
         }
+
         private void Add(PNode node)
         {
             Programs.Add(node);
         }
+
         private List<PNode> Programs;
         private ILGenerator GetIL;
         private List<QuadrupleNode> VarSeg, CodeSeg;
@@ -252,7 +304,7 @@ namespace Compiler
     {
         internal readonly PCode INS;
 
-        internal readonly int Arg;
+        internal int Arg;
 
         internal readonly int DataType;
 
@@ -274,5 +326,8 @@ namespace Compiler
         }
     }
 
-
+    public partial class QuadrupleNode
+    {
+        internal int Start;
+    }
 }

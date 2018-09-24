@@ -8,7 +8,7 @@ namespace Compiler
     /// <summary>
     /// 四元式优化
     /// </summary>
-    public class Optimize
+    internal class Optimize
     {
         #region 功能实现
         public Optimize(List<QuadrupleNode> codeseg, List<QuadrupleNode> varseg, int code_entrance)
@@ -41,7 +41,7 @@ namespace Compiler
          * 压缩代码空间会导致基本块重组
          * 之前的引用该修改的修改
          */
-        public void LocalOptimization()
+        internal void LocalOptimization()
         {
             RemoveDeadCode();
             foreach (var block in Blocks)
@@ -355,7 +355,7 @@ namespace Compiler
             }
         }
 
-        public void GlobalOptimization()
+        internal void GlobalOptimization()
         {
             //时间复杂度O(n^4)警告
             IterativeAliveVarAnalysis();
@@ -576,7 +576,7 @@ namespace Compiler
             }
         }
 
-        public void LoopOptimization()
+        internal void LoopOptimization()
         {
             //获取处理完成的自然循环
             //其中可能Loops[j]为Loops[i]的子循环，递归优化Loops[i]后，不需要再优化一次Loops[j]
@@ -619,7 +619,7 @@ namespace Compiler
 
         }
 
-        public List<QuadrupleNode> GenerateCode()
+        internal List<QuadrupleNode> GenerateCode()
         {
             //优化的时候需要保证优化完成前的代码跳转指向块
             //产生代码时才能正确指向跳转地址

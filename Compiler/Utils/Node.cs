@@ -49,7 +49,7 @@ namespace Compiler
         }
     }
 
-    public class QuadrupleNode
+    public partial class QuadrupleNode
     {
         public QuadrupleType Type;
         public Object Arg1, Arg2;//Arg为Node表示节点为一个运算结果，为string表示数，以#开头

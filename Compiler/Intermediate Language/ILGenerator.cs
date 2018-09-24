@@ -10,7 +10,7 @@ namespace Compiler
     /// <summary>
     /// 中间代码生成器
     /// </summary>
-    class ILGenerator
+    public class ILGenerator
     {
         public void PrintError()
         {
@@ -252,7 +252,7 @@ namespace Compiler
             NumOfError = parser.GetNumofErrors();
         }
 
-        internal int NumOfError { get; private set; }
+        public int NumOfError { get; private set; }
 
         internal void ChangeCodeSeg(List<QuadrupleNode> list)
         {
