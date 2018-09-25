@@ -22,19 +22,17 @@ namespace PL0Editor
     /// </summary>
     public partial class MainWindow : MetroWindow
     {
-        private int Row { get; set; }
-        private int Col { get; set; }
+        private Compiler.Position Location { get; set; }
         List<Compiler.ErrorInfo> info = new List<ErrorInfo>();
         public MainWindow()
         {
+            Location = new Compiler.Position(0, 0);
             InitializeComponent();
             for (int i = 0; i < 10; ++i)
             {
                 info.Add(new ErrorInfo(1.ToString(), i, i));
             }
             ErrorList.ItemsSource = info;
-            Row = 0;
-            Col = 0;
         }
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
