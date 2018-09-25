@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,10 +46,10 @@ namespace Compiler
             return Errors.Count;
         }
     }
-    public class ErrorInfo : IComparable
+    public class ErrorInfo : ObservableCollection<ErrorInfo>, IComparable
     {
-        public string Message;
-        public Position Location;
+        public string Message { get; set; }
+        public Position Location { get; set; }
         public ErrorInfo(string msg, int row, int col)
         {
             Message = msg;

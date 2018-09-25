@@ -1,19 +1,89 @@
-﻿<Window x:Class="PL0Editor.MainWindow"
+﻿<Controls:MetroWindow x:Class="PL0Editor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:local="clr-namespace:PL0Editor"
+        xmlns:Compiler="clr-namespace:Compiler;assembly=Compiler"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+	    xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
-            <RowDefinition Height="3*"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <ListBox>
-            
-        </ListBox>
-    </Grid>
-</Window>
+        GlowBrush="{DynamicResource AccentColorBrush}"
+        Title="MainWindow" Height="450" Width="800" Background="#FF3F3F46">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
+    </Window.CommandBindings>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" Height="30">
+            <MenuItem Header="文件">
+                <MenuItem Header="打开" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
+                <MenuItem Command="ApplicationCommands.Save"/>
+            </MenuItem>
+            <MenuItem Header="编辑">
+                <MenuItem Command="ApplicationCommands.Cut"/>
+                <MenuItem Command="ApplicationCommands.Copy"/>
+                <MenuItem Command="ApplicationCommands.Paste"/>
+                <MenuItem Command="ApplicationCommands.Redo"/>
+                <MenuItem Command="ApplicationCommands.Undo"/>
+            </MenuItem>
+            <MenuItem Header="调试">
+                <MenuItem Header="调试"/>
+                <MenuItem Header="执行"/>
+            </MenuItem>
+        </Menu>
+        <DataGrid x:Name="ErrorList" Height="100"  
+                  DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
+                  ItemsSource="{Binding}" AutoGenerateColumns="False"
+                  Style="{StaticResource AzureDataGrid}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ErrorMessage"  Binding="{Binding Message}"/>
+                <DataGridTextColumn Header="Loc" Binding="{Binding Location}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <RichTextBox x:Name="CodeEditor">
+
+        </RichTextBox>
+
+    </DockPanel>
+    <!--
+    <Window.Resources>
+        <Style TargetType="Menu">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <SolidColorBrush Color="#FF2B2B30"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground">
+                <Setter.Value>
+                    <SolidColorBrush Color="#FFF1F1F1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderThickness">
+                <Setter.Value>0</Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="MenuItem">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <SolidColorBrush Color="#FF1B1B1C"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground">
+                <Setter.Value>
+                    <SolidColorBrush Color="#FFF1F1F1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Width">
+                <Setter.Value>
+                    45
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="1,1,1,1"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+    -->
+</Controls:MetroWindow>
