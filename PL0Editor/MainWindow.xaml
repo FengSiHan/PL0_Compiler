@@ -10,7 +10,7 @@
 	    xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
         mc:Ignorable="d"
         GlowBrush="{DynamicResource AccentColorBrush}"
-        Title="MainWindow" Height="450" Width="800" Background="#FF3F3F46">
+        Title="PL0 Editor" Height="450" Width="800" Background="#FF3F3F46">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
     </Window.CommandBindings>
@@ -32,13 +32,26 @@
                 <MenuItem Header="执行"/>
             </MenuItem>
         </Menu>
+
+        <StatusBar DockPanel.Dock="Bottom" x:Name="Status">
+            <StatusBarItem>
+                <TextBlock x:Name="Status_Msg" Text="待输入"/>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock Text="{Binding Path=Row,Mode=OneWay}"/>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock Text="{Binding Path=Col,Mode=OneWay}"/>
+            </StatusBarItem>
+        </StatusBar>
         <DataGrid x:Name="ErrorList" Height="100"  
                   DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
                   ItemsSource="{Binding}" AutoGenerateColumns="False"
-                  Style="{StaticResource AzureDataGrid}">
+                  Style="{StaticResource MetroDataGrid}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ErrorMessage"  Binding="{Binding Message}"/>
-                <DataGridTextColumn Header="Loc" Binding="{Binding Location}"/>
+                <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="500"/>
+                <DataGridTextColumn Header="行" Binding="{Binding Location.Row}" Width="40"/>
+                <DataGridTextColumn Header="列" Binding="{Binding Location.Col}" Width="40"/>
             </DataGrid.Columns>
         </DataGrid>
         <RichTextBox x:Name="CodeEditor">

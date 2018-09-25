@@ -22,6 +22,8 @@ namespace PL0Editor
     /// </summary>
     public partial class MainWindow : MetroWindow
     {
+        private int Row { get; set; }
+        private int Col { get; set; }
         List<Compiler.ErrorInfo> info = new List<ErrorInfo>();
         public MainWindow()
         {
@@ -31,6 +33,8 @@ namespace PL0Editor
                 info.Add(new ErrorInfo(1.ToString(), i, i));
             }
             ErrorList.ItemsSource = info;
+            Row = 0;
+            Col = 0;
         }
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
