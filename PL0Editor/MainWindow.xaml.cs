@@ -6,6 +6,8 @@ using Compiler;
 using Microsoft.Win32;
 using MahApps.Metro.Controls;
 using System.Threading;
+using System.IO;
+
 namespace PL0Editor
 {
     /// <summary>
@@ -14,16 +16,9 @@ namespace PL0Editor
     public partial class MainWindow : MetroWindow
     {
         private Compiler.Position Location { get; set; }
-        List<Compiler.ErrorInfo> info = new List<ErrorInfo>();
         public MainWindow()
         {
-            Location = new Compiler.Position(0, 0);
             InitializeComponent();
-            for (int i = 0; i < 10; ++i)
-            {
-                info.Add(new ErrorInfo(1.ToString(), i, i));
-            }
-            ErrorList.ItemsSource = info;
         }
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
@@ -51,6 +46,13 @@ namespace PL0Editor
                 var tr = new TextRange(CodeEditor.Document.ContentStart, CodeEditor.Document.ContentEnd);
             }
         }
-        
+
+        private void LoadWindow(object sender, RoutedEventArgs e)
+        {
+            string code = File.ReadAllText($"../../../Compiler/test.pl0");
+            Parser parser = new Parser(code);
+            parser.Parse();
+            ErrorList.ItemsSource = parser.ErrorMsg.Errors;
+        }
     }
 }

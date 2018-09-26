@@ -63,6 +63,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="RtfWriter\Color.cs" />
+    <Compile Include="RtfWriter\RTFDocument.cs" />
+    <Compile Include="RtfWriter\RTFParagraph.cs" />
+    <Compile Include="RtfWriter\RTFParagraphStyle.cs" />
+    <Compile Include="RtfWriter\RTFParser.cs" />
+    <Compile Include="RtfWriter\RTFText.cs" />
+    <Compile Include="RtfWriter\RTFTextStyle.cs" />
     <Compile Include="Utils\DataConverter.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -114,5 +121,6 @@
       <Name>Compiler</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -13,6 +13,12 @@ namespace Compiler
         public static void Main(string[] arg)
         {
             string code = File.ReadAllText($"../../test.pl0");
+            Parser parser = new Parser(code);
+            parser.Parse();
+            parser.PrintErrorMsg();
+            Console.WriteLine("按任意键继续");
+            Console.ReadKey();
+
             ILGenerator ilg = new ILGenerator();
             ilg.GenerateCode(code, 0);
             ilg.PrintCode();

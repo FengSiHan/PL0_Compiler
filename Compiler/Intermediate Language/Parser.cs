@@ -34,6 +34,7 @@ namespace Compiler
 
         public AstNode Parse()
         {
+            ErrorMsg.Clear();
             try
             {
                 SkipControlList.Add(Token.PERIOD);

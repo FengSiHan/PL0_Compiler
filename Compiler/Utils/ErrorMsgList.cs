@@ -9,7 +9,7 @@ namespace Compiler
 {
     public class ErrorMsgList
     {
-        private List<ErrorInfo> Errors { get; }
+        public List<ErrorInfo> Errors { get; }
         public ErrorMsgList(int MaxErrors)
         {
             Errors = new List<ErrorInfo>(MaxErrors);
@@ -36,6 +36,10 @@ namespace Compiler
             {
                 Console.WriteLine(i);
             }
+        }
+        public void Clear()
+        {
+            Errors.Clear();
         }
         public void SortErrorMsgByLine()
         {

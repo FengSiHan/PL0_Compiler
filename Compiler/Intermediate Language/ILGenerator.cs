@@ -250,6 +250,7 @@ namespace Compiler
             parser = new Parser(text);
             Root = parser.Parse();
             NumOfError = parser.GetNumofErrors();
+            ErrorMsg = parser.ErrorMsg;
         }
 
         public int NumOfError { get; private set; }
@@ -746,6 +747,8 @@ namespace Compiler
         internal static readonly int MaxTempDataNum = 2333;
 
         private int CodeEntrance;
+
+        public ErrorMsgList ErrorMsg;
         #endregion
     }
 }

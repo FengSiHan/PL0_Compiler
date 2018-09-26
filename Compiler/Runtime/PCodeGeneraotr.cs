@@ -22,6 +22,7 @@ namespace Compiler
             {
                 return null;
             }
+            ErrorMsg = GetIL.ErrorMsg;
             GetIL.GetCode(ref CodeSeg, ref VarSeg);
             GetPCode();
             return Programs;
@@ -280,6 +281,7 @@ namespace Compiler
         internal List<QuadrupleNode> VarSeg;
         private List<QuadrupleNode> CodeSeg;
         private int IsJump = Convert.ToInt32(QuadrupleType.JMP);
+        public ErrorMsgList ErrorMsg;
     }
 
 

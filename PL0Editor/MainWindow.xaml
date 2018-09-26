@@ -12,11 +12,7 @@
                       BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
         ResizeMode="CanResizeWithGrip"
-        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
-    <Window.Resources>
-        <local:PositionConverter x:Key="PosConverter"/>
-        <Compiler:Position x:Key="Location" Col="0" Row="0"/>
-    </Window.Resources>
+        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7" Loaded="LoadWindow">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
     </Window.CommandBindings>
@@ -82,7 +78,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
-            <TabItem Header="TabItem1" Style="{DynamicResource TabItemStyle}">
+            <TabItem Header="控制台" Style="{DynamicResource TabItemStyle}">
                 <Grid Background="#FFE5E5E5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="5*"/>
