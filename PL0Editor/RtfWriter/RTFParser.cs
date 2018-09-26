@@ -13,19 +13,6 @@ namespace RTFExporter
         private static Dictionary<string, int> fontsIndex = new Dictionary<string, int>();
 
         /// <summary>
-        /// Create or rewrite a file with RTF content
-        /// <seealso cref="RTExporter.RTFDocument">
-        /// </summary>
-        /// <param name="path">The folder path with filename</param>
-        /// <param name="document">The RTF document to save</param>
-        public static void ToFile(string path, RTFDocument document)
-        {
-            document.SetFile(path);
-            document.Save();
-            document.Close();
-        }
-
-        /// <summary>
         /// Write a content straight to a file
         /// </summary>
         /// <param name="path">The folder path with filename</param>
@@ -51,7 +38,7 @@ namespace RTFExporter
         {
             RTFParser.document = document;
 
-            string str = "{\\rtf1\\ansi\\deff0";
+            string str = "{\\rtf1\\utf8\\deff0";
 
             foreach (RTFParagraph paragraph in document.paragraphs)
             {
