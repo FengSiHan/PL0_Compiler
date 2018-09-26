@@ -9,8 +9,10 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
 	    xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
         mc:Ignorable="d"
+                      BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
-        Title="PL0 Editor" Height="450" Width="800" Background="#FF3F3F46">
+        ResizeMode="CanResizeWithGrip"
+        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
     <Window.Resources>
         <local:PositionConverter x:Key="PosConverter"/>
         <Compiler:Position x:Key="Location" Col="0" Row="0"/>
@@ -19,21 +21,21 @@
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
     </Window.CommandBindings>
     <DockPanel>
-        <Menu DockPanel.Dock="Top" Height="28" Style="{DynamicResource MS}">
-            <MenuItem Header="文件" >
+        <Menu DockPanel.Dock="Top" Height="28" Style="{StaticResource MS}">
+            <MenuItem Header="文件" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Header="打开" x:Name="SaveMI" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
                 <MenuItem Command="ApplicationCommands.Save"/>
             </MenuItem>
-            <MenuItem Header="编辑" >
+            <MenuItem Header="编辑" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Command="ApplicationCommands.Cut"/>
                 <MenuItem Command="ApplicationCommands.Copy"/>
                 <MenuItem Command="ApplicationCommands.Paste"/>
                 <MenuItem Command="ApplicationCommands.Redo"/>
                 <MenuItem Command="ApplicationCommands.Undo"/>
             </MenuItem>
-            <MenuItem Header="调试">
-                <MenuItem Header="调试"/>
-                <MenuItem Header="执行"/>
+            <MenuItem Header="调试" Template="{DynamicResource MenuShowTemp}">
+                <MenuItem Header="调试" InputGestureText="Ctrl + F5"/>
+                <MenuItem Header="执行" InputGestureText="F5"/>
             </MenuItem>
         </Menu>
 
@@ -67,15 +69,16 @@
             </Grid>
         </StatusBar>
         <TabControl DockPanel.Dock="Bottom" Height="150" Style="{DynamicResource TabControlStyle}">
-            <TabItem Header="TabItem" Style="{DynamicResource TabItemStyle}">
+            <TabItem Header="错误列表" Style="{DynamicResource TabItemStyle}">
                 <DataGrid x:Name="ErrorList" Height="150"  
                   DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
                   ItemsSource="{Binding}" AutoGenerateColumns="False"
                   Style="{StaticResource MetroDataGrid}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="500"/>
+                        <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="*" FontFamily="宋体"/>
                         <DataGridTextColumn Header="行" Binding="{Binding Location.Row}" Width="40"/>
                         <DataGridTextColumn Header="列" Binding="{Binding Location.Col}" Width="40"/>
+                        <DataGridTextColumn Width="100"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
