@@ -126,7 +126,15 @@ namespace Compiler
                     PushBoolean(Pop() != Pop());
                     break;
                 case PCode.RED:
-                    string i = Console.ReadLine();
+                    string i;
+                    if (Read == null)
+                    {
+                        i = Console.ReadLine();
+                    }
+                    else
+                    {
+                        i = Read();
+                    }
                     int res;
                     while (!int.TryParse(i, out res))
                     {
@@ -159,7 +167,14 @@ namespace Compiler
                     Push(Pop() - tmp);
                     break;
                 case PCode.WRT:
-                    Console.WriteLine(Pop());
+                    if (Write == null)
+                    {
+                        Console.WriteLine(Pop());
+                    }
+                    else
+                    {
+                        Write(Pop());
+                    }
                     break;
                 case PCode.XOR:
                     Push(Pop() ^ Pop());
@@ -198,6 +213,15 @@ namespace Compiler
             }
         }
 
+        private void SetInOutFunction(ReadDelegate ReadFunction = null, WriteDelegate WriteFunction = null)
+        {
+            Read = ReadFunction;
+            Write = WriteFunction;
+        }
+        private ReadDelegate Read = null;
+        private WriteDelegate Write = null;
+        public delegate string ReadDelegate();
+        public delegate void WriteDelegate(int v);
         private Stack<int> RuntimeStack;
         private Dictionary<int, int> TempPool;
         private List<QuadrupleNode> VarSeg;

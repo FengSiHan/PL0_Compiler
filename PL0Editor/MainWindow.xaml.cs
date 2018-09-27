@@ -14,6 +14,7 @@ using ICSharpCode.AvalonEdit.Search;
 using System.Xml;
 using System.Windows.Threading;
 using System.Threading;
+using System.Text;
 
 namespace PL0Editor
 {
@@ -156,6 +157,99 @@ namespace PL0Editor
             string code = CodeEditor.Text;
             VirtualMachine vm = new VirtualMachine();
             vm.Run(new string(code.ToCharArray()), 0);
+        }
+        private void Ctrl_PreviewExecuted(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (e.Command == ApplicationCommands.Copy ||
+                e.Command == ApplicationCommands.Cut ||
+                e.Command == ApplicationCommands.Paste)
+            {
+                e.Handled = true;
+            }
+        }
+        private void Ctrl_PreKeyDown(object sender, KeyEventArgs e)
+        {
+            if (KeydownHandled)
+            {
+                e.Handled = true;
+                return;
+            }
+            int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
+            if (e.Key == Key.Up || e.Key == Key.Down)
+            {
+                e.Handled = true;
+                return;
+            }
+            else if (e.Key == Key.Left)
+            {
+                int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
+                //判断是否最后一行
+                if (start == ConsoleCtrl.SelectionStart)
+                {
+                    e.Handled = true;
+                }
+                return;
+            }
+            if (Line != ConsoleCtrl.LineCount - 1)
+            {
+                e.Handled = true;
+                return;
+            }
+            /*
+            switch (e.Key)
+            {
+                case Key.NumPad0:
+                case Key.NumPad1:
+                case Key.NumPad2:
+                case Key.NumPad3:
+                case Key.NumPad4:
+                case Key.NumPad5:
+                case Key.NumPad6:
+                case Key.NumPad7:
+                case Key.NumPad8:
+                case Key.NumPad9:
+                    string res = Convert.ToString(e.Key - Key.NumPad0);
+                    ConsoleCtrl.SelectionStart++;
+                    string text = ConsoleCtrl.Text;
+                    ConsoleCtrl.Text = text.Substring(0, ConsoleCtrl.SelectionStart - 2) + res + text.Substring(ConsoleCtrl.SelectionStart - 1);
+                    break;
+                case Key.D0:
+                case Key.D1:
+                case Key.D2:
+                case Key.D3:
+                case Key.D4:
+                case Key.D5:
+                case Key.D6:
+                case Key.D7:
+                case Key.D8:
+                case Key.D9:
+                    ConsoleCtrl.AppendText(Convert.ToString(e.Key - Key.D0));
+                    e.Handled = true;
+                    break;
+            }
+            */
+        }
+        bool KeydownHandled = true;
+        private string Ctrl_Read()
+        {
+            KeydownHandled = false;
+            //等待回调
+            //开线程，用suspend模拟中断？
+            KeydownHandled = true;
+            return null;
+        }
+        private void Ctrl_Write(int value)
+        {
+            int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
+            int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
+            StringBuilder sb = new StringBuilder();
+            if (start != ConsoleCtrl.SelectionStart)
+            {
+                sb.Append('\n');
+            }
+            sb.AppendLine(value.ToString());
+            ConsoleCtrl.AppendText(sb.ToString());
+            ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
         }
     }
 }

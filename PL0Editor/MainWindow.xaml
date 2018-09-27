@@ -78,13 +78,13 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
-            <TabItem Header="控制台" Style="{DynamicResource TabItemStyle}">
-                <Grid Background="#FFE5E5E5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5*"/>
-                        <ColumnDefinition Width="289*"/>
-                    </Grid.ColumnDefinitions>
-                </Grid>
+            <TabItem Header="控制台" Style="{DynamicResource TabItemStyle}" IsEnabled="True" >
+                <TextBox x:Name="ConsoleCtrl"
+                    TextWrapping="Wrap"  
+                    AcceptsReturn="True"  
+                    VerticalScrollBarVisibility="Visible" PreviewKeyDown="Ctrl_PreKeyDown"
+                    CommandManager.PreviewExecuted="Ctrl_PreviewExecuted"
+                    ContextMenu="{x:Null}" />
             </TabItem>
         </TabControl>
         <avalonEdit:TextEditor
