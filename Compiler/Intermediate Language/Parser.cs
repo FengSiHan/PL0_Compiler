@@ -18,23 +18,23 @@ namespace Compiler
 
 
         #region ---Funciton---
-        public Parser(string text)
+        public Parser()
         {
-            var lexer = new Lexer(text);
-            tokens = lexer.Scan().GetEnumerator();
-            if (!tokens.MoveNext())
-            {
-                throw new SyntaxErrorException("Code Length is 0", new Position(0, 0));
-            }
-            ErrorMsg = lexer.ErrorMsg;
             Keys = new HashSet<string>(new string[] { "procedure", "if", "while", "call", "begin", "repeat", "read", "write", "var", "const", "end" });
             SkipControlList = new List<Token>();
             Env.Initial();
         }
 
-        public AstNode Parse()
+        public AstNode Parse(string Text)
         {
-            ErrorMsg.Clear();
+            var lexer = new Lexer(Text);
+            tokens = lexer.Scan().GetEnumerator();
+            ErrorMsg = lexer.ErrorMsg;
+            if (!tokens.MoveNext())
+            {
+                return null;
+            }
+            SkipControlList.Clear();
             try
             {
                 SkipControlList.Add(Token.PERIOD);
@@ -1109,8 +1109,8 @@ namespace Compiler
         {
             if (CurrentToken() == null || Expect != null && CurrentToken() != Expect)
             {
-                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' ,Miss Expected tokens '{Expect.Content}'", 
-                    (CurrentToken() == null ? new Position(-1, 0) : CurrentToken().Location));
+                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}' ,Miss Expected tokens '{Expect?.Content}'",
+                    (CurrentToken() == null ? new Position(-1, 0) : CurrentToken()?.Location));
             }
             tokens.MoveNext();
         }
@@ -1130,14 +1130,17 @@ namespace Compiler
 
         private void SkipErrorTokens()
         {
-            while (CurrentToken() != null && (SkipControlList.IndexOf(CurrentToken()) == -1 
+            while (CurrentToken() != null && (SkipControlList.IndexOf(CurrentToken()) == -1
                 && (!(CurrentToken().Content is string) || !Keys.Contains((string)CurrentToken().Content))))
             {
-                tokens.MoveNext();
+                if (!tokens.MoveNext())
+                {
+                    break;
+                }
             }
         }
 
-        private readonly IEnumerator<Token> tokens;
+        private IEnumerator<Token> tokens;
         public ErrorMsgList ErrorMsg;
         private HashSet<string> Keys;
         private List<Token> SkipControlList;

@@ -247,8 +247,8 @@ namespace Compiler
 
         private void Parse(string text)
         {
-            parser = new Parser(text);
-            Root = parser.Parse();
+            parser = new Parser();
+            Root = parser.Parse(text);
             NumOfError = parser.GetNumofErrors();
             ErrorMsg = parser.ErrorMsg;
         }

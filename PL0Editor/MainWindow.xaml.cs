@@ -13,6 +13,7 @@ using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Search;
 using System.Xml;
 using System.Windows.Threading;
+using System.Threading;
 
 namespace PL0Editor
 {
@@ -38,13 +39,22 @@ namespace PL0Editor
             CodeEditor.ShowLineNumbers = true;
             CodeEditor.Options.HighlightCurrentLine = true;
             CodeEditor.Options.ConvertTabsToSpaces = true;
-            RowText.DataContext = CodeEditor.TextArea.Caret;
-            ColText.DataContext = CodeEditor.TextArea.Caret;
+
+
+            DispatcherTimer ErrorUpdateTimer = new DispatcherTimer();
+            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(3);
+            ErrorUpdateTimer.Tick += (i, j) =>
+            {
+                AnalyzeCodeError();
+            };
+            ErrorUpdateTimer.Start();
+
+            parser = new Parser();
         }
         BraceFoldingStrategy foldingStrategy = new BraceFoldingStrategy();
         FoldingManager foldingManager;
         CompletionWindow completionWindow;
-
+        Parser parser;
 
         public void Init()
         {
@@ -121,18 +131,31 @@ namespace PL0Editor
             }
         }
 
-        private void LoadWindow(object sender, RoutedEventArgs e)
-        {
-            string code = File.ReadAllText($"../../../Compiler/test.pl0");
-            Parser parser = new Parser(code);
-            parser.Parse();
-            ErrorList.ItemsSource = parser.ErrorMsg.Errors;
-        }
-
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        private void ChangeLocation(object sender, KeyEventArgs e)
         {
             RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
-            
+            ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+        }
+        private void AnalyzeCodeError()
+        {
+            string code = CodeEditor.Text;
+            parser.Parse(new string(code.ToCharArray()));
+            ErrorList.ItemsSource = parser.ErrorMsg.Errors;
+            //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
+            //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
+        }
+
+        private void ChangeLocation(object sender, MouseButtonEventArgs e)
+        {
+            RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
+            ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+        }
+
+        private void ExecuteCode(object sender, RoutedEventArgs e)
+        {
+            string code = CodeEditor.Text;
+            VirtualMachine vm = new VirtualMachine();
+            vm.Run(new string(code.ToCharArray()), 0);
         }
     }
 }

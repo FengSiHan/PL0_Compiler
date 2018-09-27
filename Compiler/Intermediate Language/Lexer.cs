@@ -23,6 +23,10 @@ namespace Compiler
         public IEnumerable<Token> Scan()
         {
             char peek;
+            if (!chars.MoveNext())
+            {
+                yield break;
+            }
             do
             {
                 peek = chars.Current;
@@ -133,7 +137,6 @@ namespace Compiler
                 //else if ("\"\'".IndexOf(peek) != -1) yield return new Token(TokenType.STRING, (object)TODO, Line); //PL0 doesn't have string
             }
             while (dont_move || MoveNext()); //'dont_move' can avoid too much MoveNext()
-
         }
 
         public Lexer(IEnumerable<char> text)
@@ -144,10 +147,6 @@ namespace Compiler
             chars = Text.GetEnumerator();
             dont_move = true;
             ErrorMsg = new ErrorMsgList(MaxErrors);
-            if (MoveNext() == false)
-            {
-                throw new SyntaxErrorException("Text is null", new Position(0, 0));
-            }
         }
 
         private bool MoveNext()

@@ -13,7 +13,7 @@
                       BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
         ResizeMode="CanResizeWithGrip"
-        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7" Loaded="LoadWindow">
+        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
     </Window.CommandBindings>
@@ -31,8 +31,8 @@
                 <MenuItem Command="ApplicationCommands.Undo"/>
             </MenuItem>
             <MenuItem Header="调试" Template="{DynamicResource MenuShowTemp}">
-                <MenuItem Header="调试" InputGestureText="Ctrl + F5" Click="MenuItem_Click"/>
-                <MenuItem Header="执行" InputGestureText="F5"/>
+                <MenuItem Header="调试" InputGestureText="Ctrl + F5" IsEnabled="False"/>
+                <MenuItem Header="执行" InputGestureText="F5" Click="ExecuteCode"/>
             </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">
@@ -52,13 +52,13 @@
                     <TextBlock>行</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="2" HorizontalAlignment="Left">
-                    <TextBlock x:Name="RowText" Text="{Binding Line}"></TextBlock>
+                    <TextBlock x:Name="RowText">1</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="3"  HorizontalAlignment="Center" >
                     <TextBlock>列</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="4" HorizontalAlignment="Left">
-                    <TextBlock x:Name="ColText" Text="{Binding Column}">0</TextBlock>
+                    <TextBlock x:Name="ColText">1</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="5" HorizontalAlignment="Stretch">
                 </StatusBarItem>
@@ -91,8 +91,7 @@
 				Name="CodeEditor"
 				FontFamily="Consolas"
 				FontSize="12pt"
-				SyntaxHighlighting="C#">
-        </avalonEdit:TextEditor>
+				SyntaxHighlighting="C#" KeyUp="ChangeLocation"/>
 
     </DockPanel>
     <!--

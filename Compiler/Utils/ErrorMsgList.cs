@@ -43,7 +43,15 @@ namespace Compiler
         }
         public void SortErrorMsgByLine()
         {
-            Errors.Sort();
+            try
+            {
+                Errors.Sort();
+
+            }
+            catch (Exception e)
+            {
+
+            }
         }
         public int Count()
         {

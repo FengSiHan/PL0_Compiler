@@ -127,7 +127,7 @@ namespace ICSharpCode.AvalonEdit.Editing
 		/// The getter of this property is faster than <see cref="Position"/> because it doesn't have
 		/// to validate the visual column.
 		/// </summary>
-		public TextLocation Location {
+		public ICSharpCode.AvalonEdit.Document.TextLocation Location {
 			get {
 				return position.Location;
 			}
