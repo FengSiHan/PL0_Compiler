@@ -1,1 +1,55 @@
-﻿
+﻿<?xml version="1.0"?>
+<SyntaxDefinition name="Custom Highlighting" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="Green" />
+  <Color name="String" foreground="Blue" />
+  <Color name="GG" foreground="Yellow" />
+
+  <!-- This is the main ruleset. -->
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="GG" multiline="true" begin="\." end="\A\z\Z"/>
+    <!-- Digits -->
+    <Rule foreground="DarkBlue">
+      \b\d+
+    </Rule>
+    <Keywords fontWeight="bold" foreground="Blue">
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>var</Word>
+      <Word>const</Word>
+      <Word>while</Word>
+      <Word>do</Word>
+      <Word>repeat</Word>
+      <Word>until</Word>
+      <Word>begin</Word>
+      <Word>end</Word>
+      <Word>read</Word>
+      <Word>write</Word>
+      <Word>call</Word>
+      <Word>procedure</Word>
+
+      <!-- ... -->
+    </Keywords>
+
+    <Keywords foreground="Red">
+      <Word>*</Word>
+      <Word>/</Word>
+      <Word>+</Word>
+      <Word>-</Word>
+      <Word>odd</Word>
+    </Keywords>
+    <Keywords foreground="Green">
+      <Word>:=</Word>
+    </Keywords>
+    <Keywords foreground="Pink">
+      <Word>=</Word>
+      <Word>&lt;</Word>
+      <Word>&gt;</Word>
+      <Word>&gt;=</Word>
+      <Word>&lt;=</Word>
+      <Word>&lt;&gt;</Word>
+    </Keywords>
+
+  </RuleSet>
+</SyntaxDefinition>

@@ -31,7 +31,7 @@
                 <MenuItem Command="ApplicationCommands.Undo"/>
             </MenuItem>
             <MenuItem Header="调试" Template="{DynamicResource MenuShowTemp}">
-                <MenuItem Header="调试" InputGestureText="Ctrl + F5"/>
+                <MenuItem Header="调试" InputGestureText="Ctrl + F5" Click="MenuItem_Click"/>
                 <MenuItem Header="执行" InputGestureText="F5"/>
             </MenuItem>
         </Menu>
@@ -52,13 +52,13 @@
                     <TextBlock>行</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="2" HorizontalAlignment="Left">
-                    <TextBlock>0</TextBlock>
+                    <TextBlock x:Name="RowText" Text="{Binding Line}"></TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="3"  HorizontalAlignment="Center" >
                     <TextBlock>列</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="4" HorizontalAlignment="Left">
-                    <TextBlock>0</TextBlock>
+                    <TextBlock x:Name="ColText" Text="{Binding Column}">0</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="5" HorizontalAlignment="Stretch">
                 </StatusBarItem>
