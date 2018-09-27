@@ -11,3 +11,20 @@ repeat
 	end
 until k = 5
 end.
+
+{\rtf1\utf8\deff0
+	{\fonttbl
+		{\f0 Consolas;}
+	}
+	{\colortbl;\red0\green0\blue0;}
+	{\info
+		{\author }
+		{\creatim\yr2018\mo9\dy26\hr20\min15}
+		{\version1}
+		{\edmins0}
+		{\nofpages1}
+		{\nofwords0}
+		{\nofchars0}
+	}
+	{\keywords }
+	\portrait\paperw11520\paperh15840\margl1440\margr1440\margt1440\margb1440 \pard\sb0\sa400\ql\fi1440\li0\ri0\plain \fs24 \f0 \cf1 Boy\par }
