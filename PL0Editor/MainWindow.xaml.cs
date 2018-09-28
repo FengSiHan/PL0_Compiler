@@ -30,6 +30,7 @@ namespace PL0Editor
             Init();
             SearchPanel.Install(CodeEditor);
             foldingManager = FoldingManager.Install(CodeEditor.TextArea);
+            foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
             DispatcherTimer foldingUpdateTimer = new DispatcherTimer();
             foldingUpdateTimer.Interval = TimeSpan.FromSeconds(2);
             foldingUpdateTimer.Tick += (i, j) =>
@@ -52,6 +53,7 @@ namespace PL0Editor
 
             parser = new Parser();
         }
+
         BraceFoldingStrategy foldingStrategy = new BraceFoldingStrategy();
         FoldingManager foldingManager;
         CompletionWindow completionWindow;

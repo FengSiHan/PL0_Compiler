@@ -895,6 +895,10 @@ namespace Compiler
                     {
                         ErrorMsg.Add($"Unknown Token '{stmt.Left.Info}',it needs declaring", stmt.Location);
                     }
+                    else if (id.Type == ExprType.Const || id.Type == ExprType.ProcDefine)
+                    {
+                        ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", id.Location);
+                    }
                     else if (id.Type != ExprType.Var)
                     {
                         ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not variable", id.Location);

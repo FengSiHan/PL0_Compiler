@@ -128,10 +128,13 @@ namespace Compiler
                     while (!char.IsWhiteSpace(peek))
                     {
                         tmp += peek;
-                        if (MoveNext()) break;
+                        if (!MoveNext())
+                        {
+                            break;
+                        }
                         peek = chars.Current;
                     }
-                    ErrorMsg.Add($"Unknown Token '{tmp}'", Row, Col);
+                    ErrorMsg.Add($"Unknown Token '{tmp}'", Row, col);
                 }
 
                 //else if ("\"\'".IndexOf(peek) != -1) yield return new Token(TokenType.STRING, (object)TODO, Line); //PL0 doesn't have string
