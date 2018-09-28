@@ -70,6 +70,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="InitEditor.cs" />
+    <Compile Include="Properties\CodeFormat.cs" />
     <Compile Include="Utils\DataConverter.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

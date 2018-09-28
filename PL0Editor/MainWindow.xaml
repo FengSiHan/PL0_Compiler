@@ -29,10 +29,11 @@
                 <MenuItem Command="ApplicationCommands.Paste"/>
                 <MenuItem Command="ApplicationCommands.Redo"/>
                 <MenuItem Command="ApplicationCommands.Undo"/>
+                <MenuItem Header="代码格式化" Click="FormatCode"/>
             </MenuItem>
             <MenuItem Header="调试" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Header="调试" InputGestureText="Ctrl + F5" IsEnabled="False"/>
-                <MenuItem Header="执行" InputGestureText="F5" Click="ExecuteCode"/>
+                <MenuItem Header="执行" x:Name="ExecuteMI" InputGestureText="F5" Click="ExecuteCode"/>
             </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">
@@ -46,7 +47,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StatusBarItem Grid.Column="0">
-                    <TextBlock>待输入</TextBlock>
+                    <TextBlock x:Name="StatusContent">待输入</TextBlock>
                 </StatusBarItem>
                 <StatusBarItem Grid.Column="1" HorizontalAlignment="Center" >
                     <TextBlock>行</TextBlock>

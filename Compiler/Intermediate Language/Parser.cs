@@ -25,7 +25,7 @@ namespace Compiler
             Env.Initial();
         }
 
-        public AstNode Parse(string Text)
+        public AstNode Parse(string Text, bool WritingCode = false)
         {
             var lexer = new Lexer(Text);
             tokens = lexer.Scan().GetEnumerator();
@@ -45,11 +45,21 @@ namespace Compiler
             {
                 ErrorMsg.Add(e);
             }
+            catch (Exception e)
+            {
+                if (ErrorMsg.Errors.Count != 0)
+                {
+                    ErrorMsg.Add("Expect more code", CurrentToken()?.Location);
+                }
+            }
             finally
             {
                 SkipControlList.RemoveAt(SkipControlList.Count - 1);
             }
-            StaticCodeAnalysis(null, AstTree);
+            if (!WritingCode)
+            {
+                StaticCodeAnalysis(null, AstTree);
+            }
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
         }
@@ -185,7 +195,11 @@ namespace Compiler
         private AstNode DefineConst()
         {
             List<AstNode> Definition = new List<AstNode>();
-            Position position = CurrentToken().Location;
+            Position position = CurrentToken()?.Location;
+            if (CurrentToken() == null)
+            {
+                return new AstNode(ExprType.ConstDefine, null, null, Definition, position);
+            }
             SkipControlList.Add(Token.SEMICOLON);
             try
             {
@@ -208,7 +222,10 @@ namespace Compiler
                         Initialized = true
                     };
                     //Left is Node of ID,Right is its value
-                    tokens.MoveNext();
+                    if (!tokens.MoveNext())
+                    {
+                        break;
+                    }
                     Token next = CurrentToken();
                     if (next == null || next.TokenType == TokenType.SEMICOLON)
                     {
@@ -219,7 +236,10 @@ namespace Compiler
                     if (next.TokenType == TokenType.COMMA)
                     {
                         Definition.Add(node);
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
@@ -233,13 +253,19 @@ namespace Compiler
                         {
                             ErrorMsg.Add($"Unexpected Token '{CurrentToken().Content}', Only number can be assigned to const ID", next.Location);
 
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                             while (CurrentToken()?.TokenType != TokenType.COMMA
                                 && CurrentToken().TokenType != TokenType.SEMICOLON
                                 && CurrentToken().TokenType != TokenType.PERIOD
                                 && Keys.Contains(CurrentToken().Content) == false)
                             {
-                                tokens.MoveNext();
+                                if (!tokens.MoveNext())
+                                {
+                                    break;
+                                }
                             }
                             if (CurrentToken() == null || CurrentToken().TokenType != TokenType.COMMA)
                             {
@@ -249,13 +275,19 @@ namespace Compiler
                         else
                         {
                             node.Right = new AstNode(ExprType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                             if (CurrentToken() == null || CurrentToken().TokenType != TokenType.COMMA)
                             {
                                 break;
                             }
                         }
-                        tokens.MoveNext(); //正确情况下指向了 , ;
+                        if (!tokens.MoveNext())//正确情况下指向了 , ;
+                        {
+                            break;
+                        } 
 
                     }
 
@@ -266,12 +298,18 @@ namespace Compiler
                         if (CurrentToken().TokenType != TokenType.NUM)
                         {
                             ErrorMsg.Add($"Unexpected Token '{next.Content}',Only number can be assigned to const ID", next.Location);
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                             while (CurrentToken()?.TokenType != TokenType.COMMA ||
                                 CurrentToken().TokenType != TokenType.SEMICOLON && CurrentToken().TokenType != TokenType.PERIOD
                                 && Keys.Contains(CurrentToken().Content) == false)
                             {
-                                tokens.MoveNext();
+                                if (!tokens.MoveNext())
+                                {
+                                    break;
+                                }
                             }
                             if (CurrentToken() == null && CurrentToken().TokenType != TokenType.COMMA)
                             {
@@ -281,7 +319,10 @@ namespace Compiler
                         else
                         {
                             node.Right = new AstNode(ExprType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                             Definition.Add(node);
                             if (CurrentToken() == null || CurrentToken().TokenType != TokenType.COMMA)
                             {
@@ -289,7 +330,10 @@ namespace Compiler
                                 break;
                             }
                         }
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                     }
                     else if (CurrentToken() != null && CurrentToken().Content is string && Keys.Contains(CurrentToken().Content))
                     {
@@ -322,8 +366,12 @@ namespace Compiler
         private AstNode DefineVar()
         {
             List<AstNode> Definition = new List<AstNode>();
+            Position position = CurrentToken()?.Location;
             SkipControlList.Add(Token.SEMICOLON);
-            Position position = CurrentToken().Location;
+            if (CurrentToken() == null)
+            {
+                return new AstNode(ExprType.VarDefine, null, null, Definition, position);
+            }
             try
             {
                 if (!tokens.MoveNext() || CurrentToken().TokenType != TokenType.ID)
@@ -340,7 +388,10 @@ namespace Compiler
 
                     AstNode node = new AstNode(ExprType.Var, new AstNode(ExprType.VarID, null, null, peek.Content, peek.Location), location: peek.Location); //Left is Node of ID,Right is its value
 
-                    tokens.MoveNext();
+                    if (!tokens.MoveNext())
+                    {
+                        break;
+                    }
                     Token next = CurrentToken();
                     if (next == null || next.TokenType == TokenType.SEMICOLON)
                     {
@@ -351,7 +402,10 @@ namespace Compiler
                     if (next.TokenType == TokenType.COMMA)
                     {
                         Definition.Add(node);
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
@@ -359,21 +413,33 @@ namespace Compiler
                         {
                             ErrorMsg.Add("var ID can't be assigned when declared", next.Location);
                         }
+                        else
+                        {
+                            break;
+                        }
                         Definition.Add(node);
-
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                         while (CurrentToken()?.TokenType != TokenType.COMMA
                             && CurrentToken().TokenType != TokenType.SEMICOLON
                             && CurrentToken().TokenType != TokenType.PERIOD
                             && Keys.Contains(CurrentToken().Content) == false)
                         {
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                         }
                         if (CurrentToken() == null || CurrentToken().TokenType != TokenType.COMMA)
                         {
                             break;
                         }
-                        tokens.MoveNext(); // 指向下一个ID
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        } // 指向下一个ID
                     }
                     else if (next.TokenType == TokenType.ASSIGN)
                     {
@@ -382,20 +448,28 @@ namespace Compiler
                             ErrorMsg.Add($"var ID can't be assigned when declared at Line", next.Location);
                         }
                         Definition.Add(node);
-
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                         while (CurrentToken()?.TokenType != TokenType.COMMA
                             && CurrentToken().TokenType != TokenType.SEMICOLON
                             && CurrentToken().TokenType != TokenType.PERIOD
                             && Keys.Contains(CurrentToken().Content) == false)
                         {
-                            tokens.MoveNext();
+                            if (!tokens.MoveNext())
+                            {
+                                break;
+                            }
                         }
                         if (CurrentToken() == null || CurrentToken().TokenType != TokenType.COMMA)
                         {
                             break;
                         }
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                     }
                     else if (CurrentToken() != null && CurrentToken().Content is string && Keys.Contains(CurrentToken().Content))
                     {
@@ -429,6 +503,10 @@ namespace Compiler
         {
             List<AstNode> Definition = new List<AstNode>();
             Position position = CurrentToken().Location;
+            if (CurrentToken() == null)
+            {
+                return new AstNode(ExprType.ProcsDefine, null, null, Definition, position);
+            }
             while (CurrentToken() == Token.PROC)
             {
                 try
@@ -439,7 +517,10 @@ namespace Compiler
                     }
 
                     AstNode left = new AstNode(ExprType.ProcDefine, null, null, CurrentToken().Content, CurrentToken().Location);
-                    tokens.MoveNext();
+                    if (!tokens.MoveNext())
+                    {
+                        break;
+                    }
                     CheckExpectToken(Token.SEMICOLON);
 
                     AstNode right = SubProgram();
@@ -453,7 +534,10 @@ namespace Compiler
                     if (CurrentToken()?.TokenType == TokenType.SEMICOLON)
                     {
                         Position Line1 = CurrentToken().Location;
-                        tokens.MoveNext();
+                        if (!tokens.MoveNext())
+                        {
+                            break;
+                        }
                         if (CurrentToken() == Token.PROC)
                         {
                             continue;
@@ -690,6 +774,10 @@ namespace Compiler
         private AstNode Statements()
         {
             AstNode node = new AstNode(ExprType.Statements, CurrentToken()?.Location);
+            if (CurrentToken() == null)
+            {
+                return node;
+            }
             SkipControlList.Add(Token.SEMICOLON);
             try
             {
@@ -702,7 +790,10 @@ namespace Compiler
                 }
                 while (CurrentToken() == Token.SEMICOLON)
                 {
-                    tokens.MoveNext();
+                    if (!tokens.MoveNext())
+                    {
+                        break;
+                    }
                     Position Line = CurrentToken().Location;
                     stmt = Statement();
 
@@ -726,7 +817,9 @@ namespace Compiler
         private AstNode Expr()
         {
             if (CurrentToken() == null)
+            {
                 return null;
+            }
             AstNode node = new AstNode(ExprType.Expr, CurrentToken().Location);
             if (CurrentToken().TokenType == TokenType.OP && CurrentToken().Content is char)
             {
@@ -771,7 +864,7 @@ namespace Compiler
         private AstNode Term()
         {
             AstNode node = Factor();
-            if (CurrentToken().TokenType == TokenType.OP && CurrentToken().Content is char
+            if (CurrentToken()?.TokenType == TokenType.OP && CurrentToken().Content is char
                 && ((char)CurrentToken().Content == '*' || (char)CurrentToken().Content == '/'))
             {
                 node = new AstNode(ExprType.Term, node, info: CurrentToken().Content, location: CurrentToken().Location);
@@ -815,7 +908,9 @@ namespace Compiler
         private AstNode ConditionExpr()
         {
             if (CurrentToken() == null)
+            {
                 return null;
+            }
             AstNode node = new AstNode(ExprType.Condition, CurrentToken().Location);
             try
             {
@@ -1116,7 +1211,10 @@ namespace Compiler
                 throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}' ,Miss Expected tokens '{Expect?.Content}'",
                     (CurrentToken() == null ? new Position(-1, 0) : CurrentToken()?.Location));
             }
-            tokens.MoveNext();
+            if (!tokens.MoveNext())
+            {
+                throw new Exception();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

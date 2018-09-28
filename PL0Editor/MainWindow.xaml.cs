@@ -43,6 +43,7 @@ namespace PL0Editor
             CodeEditor.Options.ConvertTabsToSpaces = true;
 
 
+            parser = new Parser();
             DispatcherTimer ErrorUpdateTimer = new DispatcherTimer();
             ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(3);
             ErrorUpdateTimer.Tick += (i, j) =>
@@ -50,8 +51,7 @@ namespace PL0Editor
                 AnalyzeCodeError();
             };
             ErrorUpdateTimer.Start();
-
-            parser = new Parser();
+            Temp = new StringBuilder();
         }
 
         BraceFoldingStrategy foldingStrategy = new BraceFoldingStrategy();
@@ -142,7 +142,7 @@ namespace PL0Editor
         private void AnalyzeCodeError()
         {
             string code = CodeEditor.Text;
-            parser.Parse(new string(code.ToCharArray()));
+            parser.Parse(new string(code.ToCharArray()),true);
             ErrorList.ItemsSource = parser.ErrorMsg.Errors;
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
@@ -154,11 +154,33 @@ namespace PL0Editor
             ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
         }
 
+        private sealed class VMStartup
+        {
+            private string Code;
+            private VirtualMachine VM;
+            private MainWindow Window;
+            internal VMStartup(VirtualMachine vm,string code,MainWindow window)
+            {
+                VM = vm;
+                Code = code;
+                Window = window;
+                VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write);
+            }
+            internal void Execute()
+            {
+                this.Window.ExecuteMI.IsEnabled = false;
+                VM.Run(Code);
+                this.Window.ExecuteMI.IsEnabled = true;
+            }
+        }
+
         private void ExecuteCode(object sender, RoutedEventArgs e)
         {
             string code = CodeEditor.Text;
             VirtualMachine vm = new VirtualMachine();
-            vm.Run(new string(code.ToCharArray()), 0);
+            VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);  
+            ConsoleThread = new Thread(v.Execute);
+            ConsoleThread.Start();
         }
         private void Ctrl_PreviewExecuted(object sender, ExecutedRoutedEventArgs e)
         {
@@ -177,6 +199,7 @@ namespace PL0Editor
                 return;
             }
             int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
+            int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
             if (e.Key == Key.Up || e.Key == Key.Down)
             {
                 e.Handled = true;
@@ -184,7 +207,6 @@ namespace PL0Editor
             }
             else if (e.Key == Key.Left)
             {
-                int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
                 //判断是否最后一行
                 if (start == ConsoleCtrl.SelectionStart)
                 {
@@ -197,6 +219,12 @@ namespace PL0Editor
                 e.Handled = true;
                 return;
             }
+            if (Key.Enter == e.Key)
+            {
+                ConsoleThread.Resume();
+                return;
+            }
+            e.Handled = true;
             /*
             switch (e.Key)
             {
@@ -232,13 +260,15 @@ namespace PL0Editor
             */
         }
         bool KeydownHandled = true;
+        Thread ConsoleThread;
         private string Ctrl_Read()
         {
             KeydownHandled = false;
+            ConsoleThread.Suspend();
             //等待回调
             //开线程，用suspend模拟中断？
             KeydownHandled = true;
-            return null;
+            return ConsoleCtrl.GetLineText(ConsoleCtrl.LineCount - 1);
         }
         private void Ctrl_Write(int value)
         {

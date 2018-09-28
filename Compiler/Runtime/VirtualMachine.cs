@@ -13,7 +13,7 @@ namespace Compiler
         /// </summary>
         /// <param name="Text">待执行的代码</param>
         /// <param name="OptimizeLevel">优化等级0 ~ 3</param>
-        public void Run(string Text, int OptimizeLevel)
+        public void Run(string Text, int OptimizeLevel = 0)
         {
             InstructionSet = Generator.GenerateCode(Text, OptimizeLevel);
             if (InstructionSet == null)
@@ -213,7 +213,7 @@ namespace Compiler
             }
         }
 
-        private void SetInOutFunction(ReadDelegate ReadFunction = null, WriteDelegate WriteFunction = null)
+        public void SetInOutFunction(ReadDelegate ReadFunction = null, WriteDelegate WriteFunction = null)
         {
             Read = ReadFunction;
             Write = WriteFunction;
