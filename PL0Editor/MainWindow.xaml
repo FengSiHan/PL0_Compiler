@@ -5,10 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
 	    xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
-        xmlns:local="clr-namespace:PL0Editor"
         xmlns:Compiler="clr-namespace:Compiler;assembly=Compiler"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
 	    xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
                       BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
@@ -18,7 +18,7 @@
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
     </Window.CommandBindings>
     <DockPanel x:Name="Dock">
-        <Menu DockPanel.Dock="Top" Height="28" Style="{StaticResource MS}">
+        <Menu DockPanel.Dock="Top" Height="28" Style="{StaticResource MS}" VerticalAlignment="Center">
             <MenuItem Header="文件" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Header="打开" x:Name="SaveMI" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
                 <MenuItem Command="ApplicationCommands.Save"/>
@@ -29,11 +29,12 @@
                 <MenuItem Command="ApplicationCommands.Paste"/>
                 <MenuItem Command="ApplicationCommands.Redo"/>
                 <MenuItem Command="ApplicationCommands.Undo"/>
-                <MenuItem Header="代码格式化" Click="FormatCode"/>
+                <MenuItem Header="代码格式化" Click="FormatCode" InputGestureText="Ctrl+K"/>
             </MenuItem>
             <MenuItem Header="调试" Template="{DynamicResource MenuShowTemp}">
-                <MenuItem Header="调试" InputGestureText="Ctrl + F5" IsEnabled="False"/>
+                <MenuItem Header="调试" InputGestureText="Ctrl+F5" IsEnabled="False"/>
                 <MenuItem Header="执行" x:Name="ExecuteMI" InputGestureText="F5" Click="ExecuteCode"/>
+                <MenuItem Header="终止执行" x:Name="StopMI" InputGestureText="Shift+F5" Click="StopExecuteCode" IsEnabled="False"/>
             </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">
@@ -65,7 +66,7 @@
                 </StatusBarItem>
             </Grid>
         </StatusBar>
-        <TabControl DockPanel.Dock="Bottom" Height="150" Style="{DynamicResource TabControlStyle}">
+        <TabControl DockPanel.Dock="Bottom" Height="150" Style="{DynamicResource TabControlStyle}" x:Name="TabCtrl">
             <TabItem Header="错误列表" Style="{DynamicResource TabItemStyle}">
                 <DataGrid x:Name="ErrorList" Height="150"  
                   DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
@@ -79,7 +80,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
-            <TabItem Header="控制台" Style="{DynamicResource TabItemStyle}" IsEnabled="True" >
+            <TabItem Header="控制台" Style="{DynamicResource TabItemStyle}" IsEnabled="True" x:Name="ConsoleTab">
                 <TextBox x:Name="ConsoleCtrl"
                     TextWrapping="Wrap"  
                     AcceptsReturn="True"  

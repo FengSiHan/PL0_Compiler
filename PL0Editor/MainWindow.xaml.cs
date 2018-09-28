@@ -37,7 +37,7 @@ namespace PL0Editor
             {
                 foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
             };
-            //foldingUpdateTimer.Start();
+            foldingUpdateTimer.Start();
             CodeEditor.ShowLineNumbers = true;
             CodeEditor.Options.HighlightCurrentLine = true;
             CodeEditor.Options.ConvertTabsToSpaces = true;
@@ -171,12 +171,14 @@ namespace PL0Editor
                 Window.Invoke(() =>
                 {
                     Window.ExecuteMI.IsEnabled = false;
+                    Window.StopMI.IsEnabled = true;
                     Window.StatusContent.Text = "程序开始执行";
                 });
                 VM.Run(Code);
                 Window.Invoke(() =>
                 {
                     Window.ExecuteMI.IsEnabled = true;
+                    Window.StopMI.IsEnabled = false;
                     Window.ConsoleCtrl.AppendText("程序成功退出");
                     Window.StatusContent.Text = "程序执行完毕";
                 });
@@ -191,11 +193,26 @@ namespace PL0Editor
                 StatusContent.Text = "在执行前请改正所有错误";
                 return;
             }
+            ConsoleTab.IsSelected = true;
             string code = CodeEditor.Text;
             VirtualMachine vm = new VirtualMachine();
             VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);
             ConsoleThread = new Thread(v.Execute);
             ConsoleThread.Start();
+        }
+        private void StopExecuteCode(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ConsoleThread?.Abort();
+            }
+            catch
+            {
+
+            }
+            ExecuteMI.IsEnabled = true;
+            StopMI.IsEnabled = false;
+            StatusContent.Text = "程序终止执行";
         }
         private void Ctrl_PreviewExecuted(object sender, ExecutedRoutedEventArgs e)
         {
