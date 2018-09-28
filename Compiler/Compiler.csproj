@@ -80,7 +80,7 @@
     <None Include="test.pl0" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="PL0.txt" />
+    <Content Include="Grammer\PL0.txt" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
