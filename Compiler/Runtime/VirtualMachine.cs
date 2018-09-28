@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 namespace Compiler
 {
     public class VirtualMachine
@@ -16,10 +15,23 @@ namespace Compiler
         public void Run(string Text, int OptimizeLevel = 0)
         {
             InstructionSet = Generator.GenerateCode(Text, OptimizeLevel);
-            if (InstructionSet == null)
+            if (Generator.NumOfError > 0)
             {
-                Generator.PrintError();
-                Console.WriteLine("Please correct all errors before running code");
+                return;
+            }
+            if (InstructionSet == null || InstructionSet.Count < 2)
+            {
+                foreach (var i in Generator.ErrorMsg.Errors)
+                {
+                    if (Write != null)
+                    {
+                        WriteString(i.ToString());
+                    }
+                    else
+                    {
+                        Console.WriteLine(i.ToString());
+                    }
+                }
                 return;
             }
             Reset();
@@ -31,7 +43,14 @@ namespace Compiler
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    if (Write != null)
+                    {
+                        WriteString(e.Message);
+                    }
+                    else
+                    {
+                        Console.WriteLine(e.Message);
+                    }
                     return;
                 }
             }
@@ -73,7 +92,7 @@ namespace Compiler
                     PushBoolean(Pop() < Pop());
                     break;
                 case PCode.HALT:
-                    throw new Exception();
+                    return;
                 case PCode.INT:
                     Push(Pop() + cmd.Arg);
                     break;
@@ -138,8 +157,22 @@ namespace Compiler
                     int res;
                     while (!int.TryParse(i, out res))
                     {
-                        Console.WriteLine("Please input a legal INT");
-                        i = Console.ReadLine();
+                        if (WriteString != null)
+                        {
+                            WriteString("Please input a legal INT");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Please input a legal INT");
+                        }
+                        if (Read != null)
+                        {
+                            i = Read();
+                        }
+                        else
+                        {
+                            i = Console.ReadLine();
+                        }
                     }
                     Initialized[cmd.Arg] = true;
                     DataSegment[cmd.Arg] = res;
@@ -213,15 +246,18 @@ namespace Compiler
             }
         }
 
-        public void SetInOutFunction(ReadDelegate ReadFunction = null, WriteDelegate WriteFunction = null)
+        public void SetInOutFunction(ReadDelegate ReadFunction = null, WriteDelegate WriteFunction = null, WriteStringDelegate WriteStringFunc = null)
         {
             Read = ReadFunction;
             Write = WriteFunction;
+            WriteString = WriteStringFunc;
         }
         private ReadDelegate Read = null;
         private WriteDelegate Write = null;
+        private WriteStringDelegate WriteString = null;
         public delegate string ReadDelegate();
         public delegate void WriteDelegate(int v);
+        public delegate void WriteStringDelegate(string v);
         private Stack<int> RuntimeStack;
         private Dictionary<int, int> TempPool;
         private List<QuadrupleNode> VarSeg;

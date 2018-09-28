@@ -37,15 +37,15 @@ namespace PL0Editor
             {
                 foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
             };
-            foldingUpdateTimer.Start();
+            //foldingUpdateTimer.Start();
             CodeEditor.ShowLineNumbers = true;
             CodeEditor.Options.HighlightCurrentLine = true;
             CodeEditor.Options.ConvertTabsToSpaces = true;
 
-
             parser = new Parser();
+            AnalyzeCodeError();
             DispatcherTimer ErrorUpdateTimer = new DispatcherTimer();
-            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(3);
+            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(10);
             ErrorUpdateTimer.Tick += (i, j) =>
             {
                 AnalyzeCodeError();
@@ -142,7 +142,7 @@ namespace PL0Editor
         private void AnalyzeCodeError()
         {
             string code = CodeEditor.Text;
-            parser.Parse(new string(code.ToCharArray()),true);
+            parser.Parse(new string(code.ToCharArray()), true);
             ErrorList.ItemsSource = parser.ErrorMsg.Errors;
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
@@ -159,26 +159,41 @@ namespace PL0Editor
             private string Code;
             private VirtualMachine VM;
             private MainWindow Window;
-            internal VMStartup(VirtualMachine vm,string code,MainWindow window)
+            internal VMStartup(VirtualMachine vm, string code, MainWindow window)
             {
                 VM = vm;
                 Code = code;
                 Window = window;
-                VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write);
+                VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write, window.Ctrl_Write);
             }
             internal void Execute()
             {
-                this.Window.ExecuteMI.IsEnabled = false;
+                Window.Invoke(() =>
+                {
+                    Window.ExecuteMI.IsEnabled = false;
+                    Window.StatusContent.Text = "程序开始执行";
+                });
                 VM.Run(Code);
-                this.Window.ExecuteMI.IsEnabled = true;
+                Window.Invoke(() =>
+                {
+                    Window.ExecuteMI.IsEnabled = true;
+                    Window.ConsoleCtrl.AppendText("程序成功退出");
+                    Window.StatusContent.Text = "程序执行完毕";
+                });
             }
         }
 
         private void ExecuteCode(object sender, RoutedEventArgs e)
         {
+            List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
+            if (list.Count > 0)
+            {
+                StatusContent.Text = "在执行前请改正所有错误";
+                return;
+            }
             string code = CodeEditor.Text;
             VirtualMachine vm = new VirtualMachine();
-            VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);  
+            VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);
             ConsoleThread = new Thread(v.Execute);
             ConsoleThread.Start();
         }
@@ -224,7 +239,6 @@ namespace PL0Editor
                 ConsoleThread.Resume();
                 return;
             }
-            e.Handled = true;
             /*
             switch (e.Key)
             {
@@ -268,20 +282,36 @@ namespace PL0Editor
             //等待回调
             //开线程，用suspend模拟中断？
             KeydownHandled = true;
-            return ConsoleCtrl.GetLineText(ConsoleCtrl.LineCount - 1);
+
+            return this.Invoke(() =>
+            {
+                string str = ConsoleCtrl.GetLineText(ConsoleCtrl.LineCount - 2);
+                return str.Substring(0, str.Length - 2);
+            });
         }
         private void Ctrl_Write(int value)
         {
-            int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
-            int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
+            int Line = this.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
+            int start = this.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
             StringBuilder sb = new StringBuilder();
-            if (start != ConsoleCtrl.SelectionStart)
-            {
-                sb.Append('\n');
-            }
             sb.AppendLine(value.ToString());
-            ConsoleCtrl.AppendText(sb.ToString());
-            ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
+            this.Invoke(() =>
+            {
+                ConsoleCtrl.AppendText(sb.ToString());
+                ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
+            });
+        }
+        private void Ctrl_Write(string str)
+        {
+            int Line = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
+            int start = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(str);
+            ConsoleCtrl.Invoke(() =>
+            {
+                ConsoleCtrl.AppendText(sb.ToString());
+                ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
+            });
         }
     }
 }

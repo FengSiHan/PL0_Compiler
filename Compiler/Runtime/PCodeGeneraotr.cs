@@ -18,6 +18,7 @@ namespace Compiler
         public List<PNode> GenerateCode(string Text, int Level)
         {
             GetIL.GenerateCode(Text, Level);
+            NumOfError = GetIL.NumOfError;
             if (GetIL.NumOfError > 0)
             {
                 return null;
@@ -83,6 +84,8 @@ namespace Compiler
             }
         }
 
+        public int NumOfError { get; private set; }
+
         private void GetPCode()
         {
             Programs.Clear();
@@ -94,7 +97,14 @@ namespace Compiler
             {
                 if (i.INS == PCode.JMP || i.INS == PCode.JPC)
                 {
-                    i.Arg = CodeSeg[i.Arg].Start;
+                    try
+                    {
+                        i.Arg = CodeSeg[i.Arg].Start;
+                    }
+                    catch
+                    {
+
+                    }
                 }
             }
             Programs[Programs.Count - 1] = new PNode(PCode.HALT);

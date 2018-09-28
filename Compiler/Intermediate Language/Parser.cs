@@ -32,6 +32,7 @@ namespace Compiler
             ErrorMsg = lexer.ErrorMsg;
             if (!tokens.MoveNext())
             {
+                ErrorMsg.Add("Expect '.' at the end of code", CurrentToken()?.Location);
                 return null;
             }
             SkipControlList.Clear();
@@ -47,7 +48,11 @@ namespace Compiler
             }
             catch (Exception e)
             {
-                if (ErrorMsg.Errors.Count != 0)
+                if (CurrentToken() != Token.PERIOD)
+                {
+                    ErrorMsg.Add("Expect '.' at the end of code", CurrentToken()?.Location);
+                }
+                else if (ErrorMsg.Errors.Count != 0)
                 {
                     ErrorMsg.Add("Expect more code", CurrentToken()?.Location);
                 }
