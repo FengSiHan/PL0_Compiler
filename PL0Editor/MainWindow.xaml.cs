@@ -51,6 +51,9 @@ namespace PL0Editor
             };
             ErrorUpdateTimer.Start();
 
+            //CodeEditor.Document.Lines
+
+            Temp = new StringBuilder();
             parser = new Parser();
         }
 
@@ -253,5 +256,6 @@ namespace PL0Editor
             ConsoleCtrl.AppendText(sb.ToString());
             ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
         }
+        
     }
 }
