@@ -35,6 +35,7 @@
                 <MenuItem Header="调试" InputGestureText="Ctrl+F5" IsEnabled="False"/>
                 <MenuItem Header="执行" x:Name="ExecuteMI" InputGestureText="F5" Click="ExecuteCode"/>
                 <MenuItem Header="终止执行" x:Name="StopMI" InputGestureText="Shift+F5" Click="StopExecuteCode" IsEnabled="False"/>
+                <MenuItem Header="测试" Click="MenuItem_Click" />
             </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">

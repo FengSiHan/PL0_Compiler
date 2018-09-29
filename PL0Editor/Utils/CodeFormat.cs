@@ -36,13 +36,13 @@ namespace PL0Editor
             switch (Node.Type)
             {
                 case ExprType.SubProgram:
-                    GenerateCode(Node.Left, Node, 0);
-                    GenerateCode(Node.Right, Node, 0);
+                    GenerateCode(Node.Left, Node, Indent);
+                    GenerateCode(Node.Right, Node, Indent);
                     break;
                 case ExprType.Define:
                 case ExprType.IdDefine:
-                    GenerateCode(Node.Left, Node, 0);
-                    GenerateCode(Node.Right, Node, 0);
+                    GenerateCode(Node.Left, Node, Indent);
+                    GenerateCode(Node.Right, Node, Indent);
                     break;
                 case ExprType.ConstDefine:
                     List<AstNode> list = Node.Info as List<AstNode>;

@@ -25,7 +25,7 @@ namespace Compiler
             Env.Initial();
         }
 
-        public AstNode Parse(string Text, bool WritingCode = false)
+        public AstNode Parse(string Text)
         {
             var lexer = new Lexer(Text);
             tokens = lexer.Scan().GetEnumerator();
@@ -46,7 +46,7 @@ namespace Compiler
             {
                 ErrorMsg.Add(e);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 if (CurrentToken() != Token.PERIOD)
                 {
@@ -61,10 +61,7 @@ namespace Compiler
             {
                 SkipControlList.RemoveAt(SkipControlList.Count - 1);
             }
-            if (!WritingCode)
-            {
-                StaticCodeAnalysis(null, AstTree);
-            }
+            StaticCodeAnalysis(null, AstTree);
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
         }
@@ -74,96 +71,102 @@ namespace Compiler
             if (subproc == null)
                 return;
 
-            Env env = new Env(preenv);
-            SubProgram();
-            AstNode constDefine = subproc.Left.Left.Left,
-                varDefine = subproc.Left.Left.Right,
-                procDefine = subproc.Left.Right,
-                stmt = subproc.Right;
-            List<AstNode> consts = constDefine.Info as List<AstNode>,
-                vars = varDefine.Info as List<AstNode>,
-                procs = procDefine.Info as List<AstNode>;
+            try
+            {
+                Env env = new Env(preenv);
+                AstNode constDefine = subproc.Left.Left.Left,
+                    varDefine = subproc.Left.Left.Right,
+                    procDefine = subproc.Left.Right,
+                    stmt = subproc.Right;
+                List<AstNode> consts = constDefine.Info as List<AstNode>,
+                    vars = varDefine.Info as List<AstNode>,
+                    procs = procDefine.Info as List<AstNode>;
 
-            /*
-             * -1: keys
-             *  0: ok
-             *  1: unknown
-             *  2: already exist
-             */
-            if (consts != null)
-            {
-                foreach (var i in consts)
+                /*
+                 * -1: keys
+                 *  0: ok
+                 *  1: unknown
+                 *  2: already exist
+                 */
+                if (consts != null)
                 {
-                    int res = env.Reserve(i);
-                    switch (res)
+                    foreach (var i in consts)
                     {
-                        case -1:
-                            ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                            break;
-                        case 1:
-                            ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
-                            break;
-                        case 2:
-                            ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                            break;
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                        }
+                    }
+                }
+                if (vars != null)
+                {
+                    foreach (var i in vars)
+                    {
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                        }
+                    }
+                }
+                //递归解析
+                if (procs != null)
+                {
+                    foreach (var i in procs)
+                    {
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                            case 0:
+                                StaticCodeAnalysis(env, i.Right);
+                                break;
+                        }
+                    }
+                }
+                if (stmt != null)
+                {
+                    if (stmt.Type == ExprType.Statements)
+                    {
+                        foreach (var i in (List<AstNode>)stmt.Info)
+                        {
+                            VerifyIdentifier(env, i);
+                        }
+                    }
+                    else
+                    {
+                        VerifyIdentifier(env, stmt);
                     }
                 }
             }
-            if (vars != null)
+            catch
             {
-                foreach (var i in vars)
-                {
-                    int res = env.Reserve(i);
-                    switch (res)
-                    {
-                        case -1:
-                            ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                            break;
-                        case 1:
-                            ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
-                            break;
-                        case 2:
-                            ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                            break;
-                    }
-                }
-            }
-            //递归解析
-            if (procs != null)
-            {
-                foreach (var i in procs)
-                {
-                    int res = env.Reserve(i);
-                    switch (res)
-                    {
-                        case -1:
-                            ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                            break;
-                        case 1:
-                            ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
-                            break;
-                        case 2:
-                            ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                            break;
-                        case 0:
-                            StaticCodeAnalysis(env, i.Right);
-                            break;
-                    }
-                }
-            }
-            if (stmt != null)
-            {
-                if (stmt.Type == ExprType.Statements)
-                {
-                    foreach (var i in (List<AstNode>)stmt.Info)
-                    {
-                        VerifyIdentifier(env, i);
-                    }
-                }
-                else
-                {
-                    VerifyIdentifier(env, stmt);
-                }
+
             }
         }
 
@@ -292,7 +295,7 @@ namespace Compiler
                         if (!tokens.MoveNext())//正确情况下指向了 , ;
                         {
                             break;
-                        } 
+                        }
 
                     }
 
@@ -450,7 +453,7 @@ namespace Compiler
                     {
                         if (tokens.MoveNext())
                         {
-                            ErrorMsg.Add($"var ID can't be assigned when declared at Line", next.Location);
+                            ErrorMsg.Add($"var ID can't be assigned when declared", next.Location);
                         }
                         Definition.Add(node);
                         if (!tokens.MoveNext())
@@ -720,7 +723,7 @@ namespace Compiler
                             }
                             else if (CurrentToken().TokenType != TokenType.COMMA)
                             {
-                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' follow write at Line", CurrentToken().Location);
+                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' followed write", CurrentToken().Location);
                             }
                         }
                         while (tokens.MoveNext() && CurrentToken().TokenType != TokenType.BRACKET && Keys.Contains(CurrentToken().Content) == false);
@@ -987,120 +990,125 @@ namespace Compiler
             {
                 return;
             }
-            switch (stmt.Type)
+            try
             {
-                case ExprType.Assign:
-                    AstNode id = env.Find((string)stmt.Left.Info);
-                    if (id == null)
-                    {
-                        ErrorMsg.Add($"Unknown Token '{stmt.Left.Info}',it needs declaring", stmt.Location);
-                    }
-                    else if (id.Type == ExprType.Const || id.Type == ExprType.ProcDefine)
-                    {
-                        ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", id.Location);
-                    }
-                    else if (id.Type != ExprType.Var)
-                    {
-                        ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not variable", id.Location);
-                    }
-                    else
-                    {
-                        id.Initialized = true;
-                        stmt.Left = id;
-                    }
-                    TraversalExpr(env, stmt.Right, stmt, false);
-                    break;
-                case ExprType.Call:
-                    //注意只能call同级分程序
-                    id = env.FindNoRecursion((string)stmt.Info);
-                    if (id == null)
-                    {
-                        ErrorMsg.Add($"Unknown Token '{stmt.Info}',it needs declaring", stmt.Location);
-                    }
-                    else if (id.Type != ExprType.ProcDefine)
-                    {
-                        ErrorMsg.Add($"'{id.Info}' can't be called,it's not procedure", stmt.Location);
-                    }
-                    else
-                    {
-                        stmt.Left = id;
-                    }
-                    break;
-                case ExprType.IfElse:
-                    AstNode _if = stmt.Left, _else = stmt.Right;
-                    TraversalExpr(env, _if.Left, _if, true);
-                    VerifyIdentifier(env, _if.Right);
-                    VerifyIdentifier(env, _else);
-                    break;
-                case ExprType.Read:
-                    List<AstNode> tokenlist = (List<AstNode>)stmt.Info;
-                    for (int i = 0; i < tokenlist.Count; ++i)
-                    {
-                        id = env.Find((string)tokenlist[i].Info);
+                switch (stmt.Type)
+                {
+                    case ExprType.Assign:
+                        AstNode id = env.Find((string)stmt.Left.Info);
                         if (id == null)
                         {
-                            ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                            ErrorMsg.Add($"Unknown Token '{stmt.Left.Info}',it needs declaring", stmt.Location);
+                        }
+                        else if (id.Type == ExprType.Const || id.Type == ExprType.ProcDefine)
+                        {
+                            ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", id.Location);
                         }
                         else if (id.Type != ExprType.Var)
                         {
-                            ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", stmt.Location);
+                            ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not variable", id.Location);
                         }
                         else
                         {
-                            tokenlist[i] = id;
                             id.Initialized = true;
+                            stmt.Left = id;
                         }
-                    }
-                    break;
-                case ExprType.Write:
-                    tokenlist = (List<AstNode>)stmt.Info;
-                    for (int i = 0; i < tokenlist.Count; ++i)
-                    {
-                        id = env.Find((string)tokenlist[i].Info);
+                        TraversalExpr(env, stmt.Right, stmt, false);
+                        break;
+                    case ExprType.Call:
+                        //注意只能call同级分程序
+                        id = env.FindNoRecursion((string)stmt.Info);
                         if (id == null)
                         {
-                            ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                            ErrorMsg.Add($"Unknown Token '{stmt.Info}',it needs declaring", stmt.Location);
                         }
-                        else if (id.Type != ExprType.Var && id.Type != ExprType.Const)
+                        else if (id.Type != ExprType.ProcDefine)
                         {
-                            ErrorMsg.Add($"'{id.Left.Info}' is illegal,Write() requires const or var id", stmt.Location);
+                            ErrorMsg.Add($"'{id.Info}' can't be called,it's not procedure", stmt.Location);
                         }
                         else
                         {
-                            tokenlist[i] = id;
+                            stmt.Left = id;
                         }
-                    }
-                    break;
-                case ExprType.RepeatUntil:
-                    VerifyIdentifier(env, stmt.Right);
-                    if (stmt.Left == null)
-                    {
-                        ErrorMsg.Add("RepeatUntil condition has error", stmt.Location);
-                    }
-                    else
-                    {
-                        TraversalExpr(env, stmt.Left, stmt, true);
-                    }
-                    break;
-                case ExprType.WhileDo:
-                    VerifyIdentifier(env, stmt.Right);
-                    if (stmt.Left == null)
-                    {
-                        ErrorMsg.Add("While condition has error", stmt.Location);
-                    }
-                    else
-                    {
-                        TraversalExpr(env, stmt.Left, stmt, true);
-                    }
-                    break;
-                case ExprType.Statements:
-                    var list = (List<AstNode>)stmt.Info;
-                    foreach (var i in list)
-                    {
-                        VerifyIdentifier(env, i);
-                    }
-                    break;
+                        break;
+                    case ExprType.IfElse:
+                        AstNode _if = stmt.Left, _else = stmt.Right;
+                        TraversalExpr(env, _if.Left, _if, true);
+                        VerifyIdentifier(env, _if.Right);
+                        VerifyIdentifier(env, _else);
+                        break;
+                    case ExprType.Read:
+                        List<AstNode> tokenlist = (List<AstNode>)stmt.Info;
+                        for (int i = 0; i < tokenlist.Count; ++i)
+                        {
+                            id = env.Find((string)tokenlist[i].Info);
+                            if (id == null)
+                            {
+                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                            }
+                            else if (id.Type != ExprType.Var)
+                            {
+                                ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", stmt.Location);
+                            }
+                            else
+                            {
+                                tokenlist[i] = id;
+                                id.Initialized = true;
+                            }
+                        }
+                        break;
+                    case ExprType.Write:
+                        tokenlist = (List<AstNode>)stmt.Info;
+                        for (int i = 0; i < tokenlist.Count; ++i)
+                        {
+                            id = env.Find((string)tokenlist[i].Info);
+                            if (id == null)
+                            {
+                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                            }
+                            else if (id.Type != ExprType.Var && id.Type != ExprType.Const)
+                            {
+                                ErrorMsg.Add($"'{id.Left.Info}' is illegal,Write() requires const or var id", stmt.Location);
+                            }
+                            else
+                            {
+                                tokenlist[i] = id;
+                            }
+                        }
+                        break;
+                    case ExprType.RepeatUntil:
+                        VerifyIdentifier(env, stmt.Right);
+                        if (stmt.Left == null)
+                        {
+                            ErrorMsg.Add("RepeatUntil condition has error", stmt.Location);
+                        }
+                        else
+                        {
+                            TraversalExpr(env, stmt.Left, stmt, true);
+                        }
+                        break;
+                    case ExprType.WhileDo:
+                        VerifyIdentifier(env, stmt.Right);
+                        if (stmt.Left == null)
+                        {
+                            ErrorMsg.Add("While condition has error", stmt.Location);
+                        }
+                        else
+                        {
+                            TraversalExpr(env, stmt.Left, stmt, true);
+                        }
+                        break;
+                    case ExprType.Statements:
+                        var list = (List<AstNode>)stmt.Info;
+                        foreach (var i in list)
+                        {
+                            VerifyIdentifier(env, i);
+                        }
+                        break;
+                }
             }
+
+            catch { }
         }
 
         private void TraversalExpr(Env env, AstNode start, AstNode prev, bool ifLeft)
@@ -1288,8 +1296,8 @@ namespace Compiler
 
     public class Env
     {
-        private Env prev;
-        private Dictionary<string, AstNode> dict;
+        protected Env prev;
+        protected Dictionary<string, AstNode> dict;
         public static HashSet<string> Keys;
         public static void Initial()
         {

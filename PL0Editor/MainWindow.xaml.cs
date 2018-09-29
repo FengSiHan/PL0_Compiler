@@ -29,35 +29,79 @@ namespace PL0Editor
             InitializeComponent();
             Init();
             SearchPanel.Install(CodeEditor);
+            parser = new Parser();
+            Temp = new StringBuilder();
+            codeCompletion = new CodeCompletion(this);
+            InputText = new StringBuilder();
+
+            CodeEditor.ShowLineNumbers = true;
+            CodeEditor.Options.HighlightCurrentLine = true;
+            CodeEditor.Options.ConvertTabsToSpaces = true;
+
+            //自动折叠扫描
+            DispatcherTimer foldingUpdateTimer = new DispatcherTimer();
             foldingManager = FoldingManager.Install(CodeEditor.TextArea);
             foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
-            DispatcherTimer foldingUpdateTimer = new DispatcherTimer();
             foldingUpdateTimer.Interval = TimeSpan.FromSeconds(2);
             foldingUpdateTimer.Tick += (i, j) =>
             {
                 foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
             };
-            foldingUpdateTimer.Start();
-            CodeEditor.ShowLineNumbers = true;
-            CodeEditor.Options.HighlightCurrentLine = true;
-            CodeEditor.Options.ConvertTabsToSpaces = true;
+            //foldingUpdateTimer.Start();
 
-            parser = new Parser();
+            //后台代码检查线程
             AnalyzeCodeError();
             DispatcherTimer ErrorUpdateTimer = new DispatcherTimer();
-            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(10);
+            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(2);
             ErrorUpdateTimer.Tick += (i, j) =>
             {
                 AnalyzeCodeError();
             };
             ErrorUpdateTimer.Start();
-            Temp = new StringBuilder();
+
+            DispatcherTimer CodeAnalysisTimer = new DispatcherTimer();
+            CodeAnalysisTimer.Interval = TimeSpan.FromSeconds(2);
+            CodeAnalysisTimer.Tick += (i, j) =>
+            {
+                codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+            };
+            CodeAnalysisTimer.Start();
+
+            //用于重置代码提示功能
+            DispatcherTimer ResetTimer = new DispatcherTimer();
+            ResetTimer.Interval = TimeSpan.FromSeconds(2);
+            ResetTimer.Tick += (i, j) =>
+            {
+                this.Invoke(() =>
+                {
+                    try
+                    {
+                        lock (completionWindow)
+                        {
+                            if (completionWindow != null && completionWindow.WindowState != WindowState.Normal)
+                            {
+                                completionWindow.Close();
+                                StatusContent.Text = "代码提示重新载入完成";
+                            }
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                });
+            };
+            ResetTimer.Start();
         }
 
         BraceFoldingStrategy foldingStrategy = new BraceFoldingStrategy();
         FoldingManager foldingManager;
         CompletionWindow completionWindow;
         Parser parser;
+        CodeCompletion codeCompletion;
+        StringBuilder InputText;
+        public static int StartIndex { get; private set; }
+        public static int Length { get; private set; }
 
         public void Init()
         {
@@ -87,23 +131,98 @@ namespace PL0Editor
             CodeEditor.TextArea.TextEntering += CodeEditor_TextArea_TextEntering;
             CodeEditor.TextArea.TextEntered += CodeEditor_TextArea_TextEntered;
         }
+
         public void CodeEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
-            if (e.Text == ".")
+            try
             {
-                // open code completion after the user has pressed dot:
-                completionWindow = new CompletionWindow(CodeEditor.TextArea);
-                // provide AvalonEdit with the data:
-                IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
-                data.Add(new MyCompletionData("Item1"));
-                data.Add(new MyCompletionData("Item2"));
-                data.Add(new MyCompletionData("Item3"));
-                data.Add(new MyCompletionData("Another item"));
-                completionWindow.Show();
-                completionWindow.Closed += delegate
+                if (e.Text.Length != 0)
                 {
-                    completionWindow = null;
-                };
+                    if (char.IsLetterOrDigit(e.Text[0]))
+                    {
+                        if (InputText.Length == 0)
+                        {
+                            StartIndex = CodeEditor.SelectionStart - 1;
+                        }
+                        InputText.Append(e.Text);
+                        Length = InputText.Length;
+                        if (completionWindow == null)
+                        {
+                            completionWindow = new CompletionWindow(CodeEditor.TextArea);
+                        }
+
+                        IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
+
+                        var symbol = codeCompletion.Symbols;
+                        CodeCompletion.Envirment host = null;
+                        foreach (var i in symbol)
+                        {
+                            if (Between(i.Start, i.End, CodeEditor.TextArea.Caret.Line))
+                            {
+                                host = i;
+                                break;
+                            }
+                        }
+                        if (host == null)
+                        {
+                            host = codeCompletion.Global;
+                        }
+                        List<CompletionInfo> result = host?.Find(InputText[0]);
+                        if (result == null || result.Count == 0)
+                        {
+                            completionWindow.Close();
+                            return;
+                        }
+                        foreach (var i in result)
+                        {
+                            var tmp = new CompletionData(i);
+                            bool find = false;
+                            foreach (var k in data)
+                            {
+                                if (k.Text == tmp.Text)
+                                {
+                                    find = true;
+                                    break;
+                                }
+                            }
+                            if (!find)
+                            {
+                                data.Add(tmp);
+                            }
+                        }
+                        completionWindow.CompletionList.SelectItem(InputText.ToString());
+                        completionWindow.Closed += delegate
+                        {
+                            completionWindow = null;
+                            InputText.Clear();
+                        };
+                        try
+                        {
+                            completionWindow.Show();
+                        }
+                        catch
+                        {
+                            completionWindow.Close();
+                        }
+                    }
+                    else
+                    {
+                        completionWindow?.Close();
+                    }
+                }
+                else
+                {
+                    completionWindow?.Close();
+                }
+            }
+            catch
+            {
+                StatusContent.Text = "代码提示模块错误......";
+            }
+            bool Between(Compiler.Position start, Compiler.Position end, int row)
+            {
+                row--;
+                return row >= start.Row && row <= end.Row;
             }
         }
         public void CodeEditor_TextArea_TextEntering(object sender, TextCompositionEventArgs e)
@@ -119,8 +238,17 @@ namespace PL0Editor
             }
             // do not set e.Handled=true - we still want to insert the character that was typed
         }
+
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
+            if (CodeEditor.Text.Length > 0)
+            {
+                e.CanExecute = true;
+            }
+            else
+            {
+                e.CanExecute = false;
+            }
         }
 
         private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
@@ -142,7 +270,7 @@ namespace PL0Editor
         private void AnalyzeCodeError()
         {
             string code = CodeEditor.Text;
-            parser.Parse(new string(code.ToCharArray()), true);
+            parser.Parse(new string(code.ToCharArray()));
             ErrorList.ItemsSource = parser.ErrorMsg.Errors;
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
@@ -329,6 +457,11 @@ namespace PL0Editor
                 ConsoleCtrl.AppendText(sb.ToString());
                 ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
             });
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
         }
     }
 }
