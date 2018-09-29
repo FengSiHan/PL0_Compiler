@@ -94,7 +94,7 @@ namespace PL0Editor
             ResetTimer.Start();
         }
 
-        BraceFoldingStrategy foldingStrategy = new BraceFoldingStrategy();
+        PL0FoldingStrategy foldingStrategy = new PL0FoldingStrategy();
         FoldingManager foldingManager;
         CompletionWindow completionWindow;
         Parser parser;
@@ -110,7 +110,9 @@ namespace PL0Editor
             {
                 if (stream is null)
                 {
-                    throw new Exception("PL0 highlight ruleset is lost");
+                    MessageBox.Show("PL0 highlight ruleset is lost");
+                    this.Close();
+                    return;
                 }
                 else
                 {
@@ -221,22 +223,30 @@ namespace PL0Editor
             }
             bool Between(Compiler.Position start, Compiler.Position end, int row)
             {
+                if (ReferenceEquals(start, null) || ReferenceEquals(end, null))
+                {
+                    return false;
+                }
                 row--;
                 return row >= start.Row && row <= end.Row;
             }
         }
         public void CodeEditor_TextArea_TextEntering(object sender, TextCompositionEventArgs e)
         {
-            if (e.Text.Length > 0 && completionWindow != null)
+            try
             {
-                if (!char.IsLetterOrDigit(e.Text[0]))
+                if (e.Text.Length > 0 && completionWindow != null)
                 {
-                    // Whenever a non-letter is typed while the completion window is open,
-                    // insert the currently selected element.
-                    completionWindow.CompletionList.RequestInsertion(e);
+                    if (!char.IsLetterOrDigit(e.Text[0]))
+                    {
+                        completionWindow.CompletionList.RequestInsertion(e);
+                    }
                 }
             }
-            // do not set e.Handled=true - we still want to insert the character that was typed
+            catch
+            {
+
+            }
         }
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
@@ -264,22 +274,34 @@ namespace PL0Editor
 
         private void ChangeLocation(object sender, KeyEventArgs e)
         {
-            RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
-            ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+            try
+            {
+                RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
+                ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+            }
+            catch { }
         }
         private void AnalyzeCodeError()
         {
-            string code = CodeEditor.Text;
-            parser.Parse(new string(code.ToCharArray()));
-            ErrorList.ItemsSource = parser.ErrorMsg.Errors;
+            try
+            {
+                string code = CodeEditor.Text;
+                parser.Parse(new string(code.ToCharArray()));
+                ErrorList.ItemsSource = parser.ErrorMsg.Errors;
+            }
+            catch { }
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
         }
 
         private void ChangeLocation(object sender, MouseButtonEventArgs e)
         {
-            RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
-            ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+            try
+            {
+                RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
+                ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+            }
+            catch { }
         }
 
         private sealed class VMStartup
@@ -296,37 +318,46 @@ namespace PL0Editor
             }
             internal void Execute()
             {
-                Window.Invoke(() =>
+                try
                 {
-                    Window.ExecuteMI.IsEnabled = false;
-                    Window.StopMI.IsEnabled = true;
-                    Window.StatusContent.Text = "程序开始执行";
-                });
-                VM.Run(Code);
-                Window.Invoke(() =>
-                {
-                    Window.ExecuteMI.IsEnabled = true;
-                    Window.StopMI.IsEnabled = false;
-                    Window.ConsoleCtrl.AppendText("程序成功退出");
-                    Window.StatusContent.Text = "程序执行完毕";
-                });
+                    Window.Invoke(() =>
+                    {
+                        Window.ExecuteMI.IsEnabled = false;
+                        Window.StopMI.IsEnabled = true;
+                        Window.StatusContent.Text = "程序开始执行";
+                    });
+                    VM.Run(Code);
+                    Window.Invoke(() =>
+                    {
+                        Window.ExecuteMI.IsEnabled = true;
+                        Window.StopMI.IsEnabled = false;
+                        Window.ConsoleCtrl.AppendText("程序成功退出");
+                        Window.StatusContent.Text = "程序执行完毕";
+                    });
+                }
+                catch
+                { }
             }
         }
 
         private void ExecuteCode(object sender, RoutedEventArgs e)
         {
-            List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
-            if (list.Count > 0)
+            try
             {
-                StatusContent.Text = "在执行前请改正所有错误";
-                return;
+                List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
+                if (list.Count > 0)
+                {
+                    StatusContent.Text = "在执行前请改正所有错误";
+                    return;
+                }
+                ConsoleTab.IsSelected = true;
+                string code = CodeEditor.Text;
+                VirtualMachine vm = new VirtualMachine();
+                VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);
+                ConsoleThread = new Thread(v.Execute);
+                ConsoleThread.Start();
             }
-            ConsoleTab.IsSelected = true;
-            string code = CodeEditor.Text;
-            VirtualMachine vm = new VirtualMachine();
-            VMStartup v = new VMStartup(vm, new string(code.ToCharArray()), this);
-            ConsoleThread = new Thread(v.Execute);
-            ConsoleThread.Start();
+            catch { }
         }
         private void StopExecuteCode(object sender, RoutedEventArgs e)
         {
@@ -353,115 +384,139 @@ namespace PL0Editor
         }
         private void Ctrl_PreKeyDown(object sender, KeyEventArgs e)
         {
-            if (KeydownHandled)
+            try
             {
-                e.Handled = true;
-                return;
-            }
-            int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
-            int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
-            if (e.Key == Key.Up || e.Key == Key.Down)
-            {
-                e.Handled = true;
-                return;
-            }
-            else if (e.Key == Key.Left)
-            {
-                //判断是否最后一行
-                if (start == ConsoleCtrl.SelectionStart)
+                if (KeydownHandled)
                 {
                     e.Handled = true;
+                    return;
                 }
-                return;
-            }
-            if (Line != ConsoleCtrl.LineCount - 1)
-            {
-                e.Handled = true;
-                return;
-            }
-            if (Key.Enter == e.Key)
-            {
-                ConsoleThread.Resume();
-                return;
-            }
-            /*
-            switch (e.Key)
-            {
-                case Key.NumPad0:
-                case Key.NumPad1:
-                case Key.NumPad2:
-                case Key.NumPad3:
-                case Key.NumPad4:
-                case Key.NumPad5:
-                case Key.NumPad6:
-                case Key.NumPad7:
-                case Key.NumPad8:
-                case Key.NumPad9:
-                    string res = Convert.ToString(e.Key - Key.NumPad0);
-                    ConsoleCtrl.SelectionStart++;
-                    string text = ConsoleCtrl.Text;
-                    ConsoleCtrl.Text = text.Substring(0, ConsoleCtrl.SelectionStart - 2) + res + text.Substring(ConsoleCtrl.SelectionStart - 1);
-                    break;
-                case Key.D0:
-                case Key.D1:
-                case Key.D2:
-                case Key.D3:
-                case Key.D4:
-                case Key.D5:
-                case Key.D6:
-                case Key.D7:
-                case Key.D8:
-                case Key.D9:
-                    ConsoleCtrl.AppendText(Convert.ToString(e.Key - Key.D0));
+                int Line = ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart);
+                int start = ConsoleCtrl.GetCharacterIndexFromLineIndex(Line);
+                if (e.Key == Key.Up || e.Key == Key.Down)
+                {
                     e.Handled = true;
-                    break;
+                    return;
+                }
+                else if (e.Key == Key.Left)
+                {
+                    //判断是否最后一行
+                    if (start == ConsoleCtrl.SelectionStart)
+                    {
+                        e.Handled = true;
+                    }
+                    return;
+                }
+                if (Line != ConsoleCtrl.LineCount - 1)
+                {
+                    e.Handled = true;
+                    return;
+                }
+                if (Key.Enter == e.Key)
+                {
+                    ConsoleThread.Resume();
+                    return;
+                }
+                /*
+                switch (e.Key)
+                {
+                    case Key.NumPad0:
+                    case Key.NumPad1:
+                    case Key.NumPad2:
+                    case Key.NumPad3:
+                    case Key.NumPad4:
+                    case Key.NumPad5:
+                    case Key.NumPad6:
+                    case Key.NumPad7:
+                    case Key.NumPad8:
+                    case Key.NumPad9:
+                        string res = Convert.ToString(e.Key - Key.NumPad0);
+                        ConsoleCtrl.SelectionStart++;
+                        string text = ConsoleCtrl.Text;
+                        ConsoleCtrl.Text = text.Substring(0, ConsoleCtrl.SelectionStart - 2) + res + text.Substring(ConsoleCtrl.SelectionStart - 1);
+                        break;
+                    case Key.D0:
+                    case Key.D1:
+                    case Key.D2:
+                    case Key.D3:
+                    case Key.D4:
+                    case Key.D5:
+                    case Key.D6:
+                    case Key.D7:
+                    case Key.D8:
+                    case Key.D9:
+                        ConsoleCtrl.AppendText(Convert.ToString(e.Key - Key.D0));
+                        e.Handled = true;
+                        break;
+                }
+                */
             }
-            */
+            catch { }
+
         }
         bool KeydownHandled = true;
         Thread ConsoleThread;
         private string Ctrl_Read()
         {
-            KeydownHandled = false;
-            ConsoleThread.Suspend();
-            //等待回调
-            //开线程，用suspend模拟中断？
-            KeydownHandled = true;
-
-            return this.Invoke(() =>
+            try
             {
-                string str = ConsoleCtrl.GetLineText(ConsoleCtrl.LineCount - 2);
-                return str.Substring(0, str.Length - 2);
-            });
+                KeydownHandled = false;
+                ConsoleThread.Suspend();
+                //等待回调
+                //开线程，用suspend模拟中断？
+                KeydownHandled = true;
+
+                return this.Invoke(() =>
+                {
+                    string str = ConsoleCtrl.GetLineText(ConsoleCtrl.LineCount - 2);
+                    return str.Substring(0, str.Length - 2);
+                });
+            }
+            catch
+            {
+                return "";
+            }
         }
         private void Ctrl_Write(int value)
         {
-            int Line = this.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
-            int start = this.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine(value.ToString());
-            this.Invoke(() =>
+            try
             {
-                ConsoleCtrl.AppendText(sb.ToString());
-                ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
-            });
+                int Line = this.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
+                int start = this.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(value.ToString());
+                this.Invoke(() =>
+                {
+                    ConsoleCtrl.AppendText(sb.ToString());
+                    ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
+                });
+            }
+            catch { }
         }
         private void Ctrl_Write(string str)
         {
-            int Line = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
-            int start = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine(str);
-            ConsoleCtrl.Invoke(() =>
+            try
             {
-                ConsoleCtrl.AppendText(sb.ToString());
-                ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
-            });
+                int Line = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetLineIndexFromCharacterIndex(ConsoleCtrl.SelectionStart));
+                int start = ConsoleCtrl.Invoke(() => ConsoleCtrl.GetCharacterIndexFromLineIndex(Line));
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(str);
+                ConsoleCtrl.Invoke(() =>
+                {
+                    ConsoleCtrl.AppendText(sb.ToString());
+                    ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
+                });
+            }
+            catch { }
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
-            codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+            try
+            {
+                codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+            }
+            catch { }
         }
     }
 }

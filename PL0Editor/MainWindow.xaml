@@ -72,7 +72,8 @@
                 <DataGrid x:Name="ErrorList" Height="150"  
                   DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
                   ItemsSource="{Binding}" AutoGenerateColumns="False"
-                  Style="{StaticResource MetroDataGrid}">
+                  Style="{StaticResource MetroDataGrid}" 
+                  IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="*" FontFamily="宋体"/>
                         <DataGridTextColumn Header="行" Binding="{Binding Location.Row}" Width="40"/>

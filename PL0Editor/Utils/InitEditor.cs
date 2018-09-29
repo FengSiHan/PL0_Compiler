@@ -22,7 +22,7 @@ namespace PL0Editor
 {
 
     
-    public class BraceFoldingStrategy
+    public class PL0FoldingStrategy
     {
         /// <summary>
         /// Gets/Sets the opening brace. The default value is '{'.
@@ -37,7 +37,7 @@ namespace PL0Editor
         /// <summary>
         /// Creates a new BraceFoldingStrategy.
         /// </summary>
-        public BraceFoldingStrategy()
+        public PL0FoldingStrategy()
         {
             this.OpeningBrace = '{';
             this.ClosingBrace = '}';

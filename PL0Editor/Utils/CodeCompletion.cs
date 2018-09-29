@@ -30,6 +30,10 @@ namespace PL0Editor
         {
             Temp.Clear();
             Global.Clear();
+            foreach (var i in Envirment.Keys)
+            {
+                Global.Reserve(i, EType.Keyword);
+            }
             UpdateSymbols(parser.Parse(Code), null);
             //Func<Envirment, Envirment, int> cmp = (i, j) =>
             //{
@@ -48,7 +52,6 @@ namespace PL0Editor
             foreach (var i in Envirment.Keys)
             {
                 Temp.Last().Reserve(i, EType.Keyword);
-                Global.Reserve(i, EType.Keyword);
             }
             lock (Symbols)
             {
