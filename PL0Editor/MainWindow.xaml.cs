@@ -33,21 +33,13 @@ namespace PL0Editor
             Temp = new StringBuilder();
             codeCompletion = new CodeCompletion(this);
             InputText = new StringBuilder();
+            Saved = false;
+            Changed = false;
 
             CodeEditor.ShowLineNumbers = true;
             CodeEditor.Options.HighlightCurrentLine = true;
             CodeEditor.Options.ConvertTabsToSpaces = true;
 
-            //自动折叠扫描
-            DispatcherTimer foldingUpdateTimer = new DispatcherTimer();
-            foldingManager = FoldingManager.Install(CodeEditor.TextArea);
-            foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
-            foldingUpdateTimer.Interval = TimeSpan.FromSeconds(2);
-            foldingUpdateTimer.Tick += (i, j) =>
-            {
-                foldingStrategy.UpdateFoldings(foldingManager, CodeEditor.Document);
-            };
-            //foldingUpdateTimer.Start();
 
             //后台代码检查线程
             AnalyzeCodeError();
@@ -66,7 +58,7 @@ namespace PL0Editor
                 codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
             };
             CodeAnalysisTimer.Start();
-
+            codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
             //用于重置代码提示功能
             DispatcherTimer ResetTimer = new DispatcherTimer();
             ResetTimer.Interval = TimeSpan.FromSeconds(2);
@@ -78,10 +70,15 @@ namespace PL0Editor
                     {
                         lock (completionWindow)
                         {
-                            if (completionWindow != null && completionWindow.WindowState != WindowState.Normal)
+                            if (completionWindow != null && !completionWindow.IsVisible)
                             {
                                 completionWindow.Close();
+                                completionWindow = null;
                                 StatusContent.Text = "代码提示重新载入完成";
+                                lock (InputText)
+                                {
+                                    InputText.Clear();
+                                }
                             }
                         }
                     }
@@ -94,12 +91,13 @@ namespace PL0Editor
             ResetTimer.Start();
         }
 
-        PL0FoldingStrategy foldingStrategy = new PL0FoldingStrategy();
-        FoldingManager foldingManager;
         CompletionWindow completionWindow;
         Parser parser;
         CodeCompletion codeCompletion;
         StringBuilder InputText;
+        bool Saved;
+        string SavePath;
+        bool Changed;
         public static int StartIndex { get; private set; }
         public static int Length { get; private set; }
 
@@ -136,6 +134,7 @@ namespace PL0Editor
 
         public void CodeEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
+            Changed = true;
             try
             {
                 if (e.Text.Length != 0)
@@ -151,6 +150,7 @@ namespace PL0Editor
                         if (completionWindow == null)
                         {
                             completionWindow = new CompletionWindow(CodeEditor.TextArea);
+                            completionWindow.CloseAutomatically = false;
                         }
 
                         IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
@@ -209,7 +209,12 @@ namespace PL0Editor
                     }
                     else
                     {
-                        completionWindow?.Close();
+                        if (e.Text.Length == 1 && e.Text[0] == '(')
+                        {
+                            CodeEditor.Document.Insert(CodeEditor.SelectionStart, ")");
+                            CodeEditor.SelectionLength--;
+                            e.Handled = true;
+                        }
                     }
                 }
                 else
@@ -258,18 +263,61 @@ namespace PL0Editor
             else
             {
                 e.CanExecute = false;
+
             }
         }
 
         private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
         {
+            if (Saved)
+            {
+                File.WriteAllText(SavePath, new string(CodeEditor.Text.ToCharArray()));
+                return;
+            }
             SaveFileDialog dialog = new SaveFileDialog();
             dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
             bool? result = dialog.ShowDialog();
             if (result.Value)
             {
-
+                File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
+                Saved = true;
+                SavePath = dialog.FileName;
+                StatusContent.Text = "文件保存成功";
             }
+        }
+        private void Open_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = true;
+        }
+
+        private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            if (!Saved || Changed)
+            {
+                var op = System.Windows.Forms.MessageBox.Show("是否保存文件", "文件已更改", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
+                switch(op)
+                {
+                    case System.Windows.Forms.DialogResult.OK:
+                        Save_Executed(null, null);
+                        break;
+                    case System.Windows.Forms.DialogResult.No:
+                        break;
+                    case System.Windows.Forms.DialogResult.Cancel:
+                        return;
+                }
+            }
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
+            bool? result = dialog.ShowDialog();
+            if (result.Value)
+            {
+                CodeEditor.Text = File.ReadAllText(dialog.FileName);
+                Changed = false;
+                Saved = true;
+                SavePath = dialog.FileName;
+                StatusContent.Text = "文件保存成功";
+            }
+            
         }
 
         private void ChangeLocation(object sender, KeyEventArgs e)
@@ -331,7 +379,7 @@ namespace PL0Editor
                     {
                         Window.ExecuteMI.IsEnabled = true;
                         Window.StopMI.IsEnabled = false;
-                        Window.ConsoleCtrl.AppendText("程序成功退出");
+                        Window.ConsoleCtrl.AppendText("程序成功退出\n");
                         Window.StatusContent.Text = "程序执行完毕";
                     });
                 }
@@ -491,7 +539,9 @@ namespace PL0Editor
                     ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
                 });
             }
-            catch { }
+            catch
+            {
+            }
         }
         private void Ctrl_Write(string str)
         {
@@ -512,9 +562,33 @@ namespace PL0Editor
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
+        }
+
+        private void SaveAs(object sender, RoutedEventArgs e)
+        {
+            if (CodeEditor.Text.Length == 0)
+            {
+                StatusContent.Text = "一开始让我储存空文件我是拒绝的，DUANG";
+            }
+            SaveFileDialog dialog = new SaveFileDialog();
+            dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
+            bool? result = dialog.ShowDialog();
+            if (result.Value)
+            {
+                File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
+                StatusContent.Text = "文件另存成功";
+            }
+        }
+
+        private void GotoErrorLine(object sender, EventArgs e)
+        {
             try
             {
-                codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+                ErrorInfo row = ErrorList.CurrentItem as ErrorInfo;
+                CodeEditor.ScrollTo(row.Location.Row, row.Location.Col);
+                CodeEditor.TextArea.Caret.Line = row.Location.Row;
+                CodeEditor.TextArea.Caret.Column = row.Location.Col;
+                CodeEditor.Focus();
             }
             catch { }
         }

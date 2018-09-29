@@ -60,124 +60,128 @@ namespace PL0Editor
         }
         private void UpdateSymbols(AstNode Root, Envirment prev)
         {
-            if (Root == null)
+            try
             {
-                return;
-            }
-            Envirment env = new Envirment(prev)
-            {
-                Start = Root.Left.Location
-            };
+                if (Root == null)
+                {
+                    return;
+                }
+                Envirment env = new Envirment(prev)
+                {
+                    Start = Root.Left.Location
+                };
 
-            AstNode constDefine = Root.Left.Left.Left,
-                varDefine = Root.Left.Left.Right,
-                procDefine = Root.Left.Right,
-                stmt = Root.Right;
-            List<AstNode> consts = constDefine.Info as List<AstNode>,
-                vars = varDefine.Info as List<AstNode>,
-                procs = procDefine.Info as List<AstNode>,
-                stmts = (List<AstNode>)stmt?.Info;
-            if (consts != null)
-            {
-                foreach (var i in consts)
+                AstNode constDefine = Root.Left.Left.Left,
+                    varDefine = Root.Left.Left.Right,
+                    procDefine = Root.Left.Right,
+                    stmt = Root.Right;
+                List<AstNode> consts = constDefine.Info as List<AstNode>,
+                    vars = varDefine.Info as List<AstNode>,
+                    procs = procDefine.Info as List<AstNode>,
+                    stmts = (List<AstNode>)stmt?.Info;
+                if (consts != null)
                 {
-                    env.Reserve((string)i.Left.Info, EType.Const);
-                    Global.Reserve((string)i.Left.Info, EType.Const);
-                }
-                env.End = constDefine.Location;
-            }
-            if (vars != null)
-            {
-                foreach (var i in vars)
-                {
-                    env.Reserve((string)i.Left.Info, EType.Var);
-                    Global.Reserve((string)i.Left.Info, EType.Var);
-                }
-                env.End = varDefine.Location;
-            }
-            if (procs != null)
-            {
-                foreach (var i in procs)
-                {
-                    env.Reserve((string)i.Left.Info, EType.Proc);
-                    Global.Reserve((string)i.Left.Info, EType.Proc);
-                    UpdateSymbols(i.Right, env);
-                }
-                env.End = procDefine.Location;
-            }
-            if (stmts != null)
-            {
-                if (stmts.Count > 0)
-                {
-                    if (stmt.Type == ExprType.Statements)
+                    foreach (var i in consts)
                     {
-                        try
+                        env.Reserve((string)i.Left.Info, EType.Const);
+                        Global.Reserve((string)i.Left.Info, EType.Const);
+                    }
+                    env.End = constDefine.Location;
+                }
+                if (vars != null)
+                {
+                    foreach (var i in vars)
+                    {
+                        env.Reserve((string)i.Left.Info, EType.Var);
+                        Global.Reserve((string)i.Left.Info, EType.Var);
+                    }
+                    env.End = varDefine.Location;
+                }
+                if (procs != null)
+                {
+                    foreach (var i in procs)
+                    {
+                        env.Reserve((string)i.Left.Info, EType.Proc);
+                        Global.Reserve((string)i.Left.Info, EType.Proc);
+                        UpdateSymbols(i.Right, env);
+                    }
+                    env.End = procDefine.Location;
+                }
+                if (stmts != null)
+                {
+                    if (stmts.Count > 0)
+                    {
+                        if (stmt.Type == ExprType.Statements)
                         {
-                            env.End = stmts[stmts.Count - 1].Location;
-                        }
-                        catch
-                        {
+                            try
+                            {
+                                env.End = stmts[stmts.Count - 1].Location;
+                            }
+                            catch
+                            {
 
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
+                else
+                {
+                    if (stmt != null)
+                    {
+                        env.End = stmt.Location;
+                    }
+                }
                 if (stmt != null)
                 {
                     env.End = stmt.Location;
-                }
-            }
-            if (stmt != null)
-            {
-                env.End = stmt.Location;
-                AstNode node = stmt;
-                bool Loop = true;
-                while (Loop)
-                {
-                    switch (node.Type)
+                    AstNode node = stmt;
+                    bool Loop = true;
+                    while (Loop)
                     {
-                        case ExprType.WhileDo:
-                        case ExprType.RepeatUntil:
-                            env.End = node.Location;
-                            node = node.Right;
-                            break;
-                        case ExprType.IfElse:
-                            if (node.Right != null)
-                            {
+                        switch (node.Type)
+                        {
+                            case ExprType.WhileDo:
+                            case ExprType.RepeatUntil:
                                 env.End = node.Location;
                                 node = node.Right;
-                            }
-                            else
-                            {
-                                env.End = node.Location;
-                                node = node.Left.Right;
-                            }
-                            break;
-                        case ExprType.Statements:
-                            List<AstNode> list = node.Info as List<AstNode>;
-                            if (list.Count > 0)
-                            {
-                                node = list[list.Count - 1];
-                                env.End = node.Location;
-                            }
-                            else
-                            {
+                                break;
+                            case ExprType.IfElse:
+                                if (node.Right != null)
+                                {
+                                    env.End = node.Location;
+                                    node = node.Right;
+                                }
+                                else
+                                {
+                                    env.End = node.Location;
+                                    node = node.Left.Right;
+                                }
+                                break;
+                            case ExprType.Statements:
+                                List<AstNode> list = node.Info as List<AstNode>;
+                                if (list.Count > 0)
+                                {
+                                    node = list[list.Count - 1];
+                                    env.End = node.Location;
+                                }
+                                else
+                                {
+                                    Loop = false;
+                                }
+                                break;
+                            default:
+                                if (node != null)
+                                {
+                                    env.End = node.Location;
+                                }
                                 Loop = false;
-                            }
-                            break;
-                        default:
-                            if (node != null)
-                            {
-                                env.End = node.Location;
-                            }
-                            Loop = false;
-                            break;
+                                break;
+                        }
                     }
                 }
+                Temp.Add(env);//避免排序
             }
-            Temp.Add(env);//避免排序
+            catch { }
         }
         internal class Envirment
         {

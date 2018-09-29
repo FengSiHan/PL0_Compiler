@@ -16,12 +16,14 @@
         Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
+        <CommandBinding Command="ApplicationCommands.Open" CanExecute="Open_CanExecute" Executed="Open_Executed"/>
     </Window.CommandBindings>
     <DockPanel x:Name="Dock">
         <Menu DockPanel.Dock="Top" Height="28" Style="{StaticResource MS}" VerticalAlignment="Center">
             <MenuItem Header="文件" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Header="打开" x:Name="SaveMI" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
                 <MenuItem Command="ApplicationCommands.Save"/>
+                <MenuItem Header="另存为" InputGestureText="Ctrl+Alt+S" Click="SaveAs"/>
             </MenuItem>
             <MenuItem Header="编辑" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Command="ApplicationCommands.Cut"/>
@@ -69,11 +71,11 @@
         </StatusBar>
         <TabControl DockPanel.Dock="Bottom" Height="150" Style="{DynamicResource TabControlStyle}" x:Name="TabCtrl">
             <TabItem Header="错误列表" Style="{DynamicResource TabItemStyle}">
-                <DataGrid x:Name="ErrorList" Height="150"  
+                <DataGrid x:Name="ErrorList" Height="150"
                   DockPanel.Dock="Bottom" HorizontalAlignment="Stretch" 
                   ItemsSource="{Binding}" AutoGenerateColumns="False"
                   Style="{StaticResource MetroDataGrid}" 
-                  IsReadOnly="True">
+                  IsReadOnly="True" CurrentCellChanged="GotoErrorLine">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="*" FontFamily="宋体"/>
                         <DataGridTextColumn Header="行" Binding="{Binding Location.Row}" Width="40"/>

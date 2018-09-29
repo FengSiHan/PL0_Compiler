@@ -70,7 +70,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Utils\CodeFormat.cs" />
-    <Compile Include="Utils\InitEditor.cs" />
     <Compile Include="Utils\DataConverter.cs" />
     <Compile Include="Utils\CodeCompletion.cs" />
     <Page Include="MainWindow.xaml">
