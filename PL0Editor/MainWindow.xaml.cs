@@ -92,6 +92,8 @@ namespace PL0Editor
         bool Saved;
         string SavePath;
         bool Changed;
+        bool KeydownHandled = true;
+        Thread ConsoleThread;
         public static int StartIndex { get; private set; }
         public static int Length { get; private set; }
 
@@ -220,7 +222,7 @@ namespace PL0Editor
                         if (e.Text.Length == 1 && e.Text[0] == '(')
                         {
                             CodeEditor.Document.Insert(CodeEditor.SelectionStart, ")");
-                            CodeEditor.SelectionLength--;
+                            CodeEditor.SelectionStart--;
                             e.Handled = true;
                         }
                     }
@@ -244,6 +246,7 @@ namespace PL0Editor
                 return row >= start1.Row && row <= end.Row;
             }
         }
+
         public void CodeEditor_TextArea_TextEntering(object sender, TextCompositionEventArgs e)
         {
             try
@@ -293,6 +296,7 @@ namespace PL0Editor
                 StatusContent.Text = "文件保存成功";
             }
         }
+
         private void Open_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             e.CanExecute = true;
@@ -337,6 +341,7 @@ namespace PL0Editor
             }
             catch { }
         }
+
         private void AnalyzeCodeError()
         {
             try
@@ -415,6 +420,7 @@ namespace PL0Editor
             }
             catch { }
         }
+
         private void StopExecuteCode(object sender, RoutedEventArgs e)
         {
             try
@@ -429,6 +435,7 @@ namespace PL0Editor
             StopMI.IsEnabled = false;
             StatusContent.Text = "程序终止执行";
         }
+
         private void Ctrl_PreviewExecuted(object sender, ExecutedRoutedEventArgs e)
         {
             if (e.Command == ApplicationCommands.Copy ||
@@ -438,6 +445,7 @@ namespace PL0Editor
                 e.Handled = true;
             }
         }
+
         private void Ctrl_PreKeyDown(object sender, KeyEventArgs e)
         {
             try
@@ -510,8 +518,7 @@ namespace PL0Editor
             catch { }
 
         }
-        bool KeydownHandled = true;
-        Thread ConsoleThread;
+
         private string Ctrl_Read()
         {
             try
@@ -533,6 +540,7 @@ namespace PL0Editor
                 return "";
             }
         }
+
         private void Ctrl_Write(int value)
         {
             try
@@ -551,6 +559,7 @@ namespace PL0Editor
             {
             }
         }
+
         private void Ctrl_Write(string str)
         {
             try
@@ -585,6 +594,29 @@ namespace PL0Editor
             {
                 File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
                 StatusContent.Text = "文件另存成功";
+            }
+        }
+        private void ExportPCode(object sender, RoutedEventArgs e)
+        {
+            List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
+            if (list.Count > 0)
+            {
+                StatusContent.Text = "在执行前请改正所有错误";
+                return;
+            }
+            string code = new string(CodeEditor.Text.ToCharArray());
+            SaveFileDialog dialog = new SaveFileDialog();
+            bool? result = dialog.ShowDialog();
+            if (result.Value)
+            {
+                PCodeGeneraotr generaotr = new PCodeGeneraotr();
+                generaotr.GenerateCode(code, 0);
+                TextWriter writer = new StreamWriter(File.Create(dialog.FileName));
+                Console.SetOut(writer);
+                generaotr.PrintCode();
+                writer.Flush();
+                writer.Dispose();
+                StatusContent.Text = "PCode导出成功";
             }
         }
 

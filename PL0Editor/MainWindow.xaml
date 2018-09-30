@@ -24,6 +24,7 @@
                 <MenuItem Header="打开" x:Name="SaveMI" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
                 <MenuItem Command="ApplicationCommands.Save"/>
                 <MenuItem Header="另存为" InputGestureText="Ctrl+Alt+S" Click="SaveAs"/>
+                <MenuItem Header="导出PCode" InputGestureText="Ctrl+P" Click="ExportPCode"/>
             </MenuItem>
             <MenuItem Header="编辑" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Command="ApplicationCommands.Cut"/>
