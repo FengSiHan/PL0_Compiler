@@ -85,7 +85,7 @@ namespace PL0Editor
             };
             ResetTimer.Start();
         }
-        
+
         CompletionWindow completionWindow;
         Parser parser;
         CodeCompletion codeCompletion;
@@ -100,22 +100,22 @@ namespace PL0Editor
         public void Init()
         {
             IHighlightingDefinition customHighlighting;
-            using (Stream stream = new FileStream("../../PL0.xshd", FileMode.Open))
+            Stream stream;
+            stream = new FileStream("../../PL0.xshd", FileMode.Open);
+            if (stream is null)
             {
-                if (stream is null)
+                stream = new FileStream("PL0.xshd", FileMode.Open);
+                if (stream == null)
                 {
                     MessageBox.Show("PL0 highlight ruleset is lost");
                     this.Close();
                     return;
                 }
-                else
-                {
-                    using (XmlReader reader = new XmlTextReader(stream))
-                    {
-                        customHighlighting = ICSharpCode.AvalonEdit.Highlighting.Xshd.
-                            HighlightingLoader.Load(reader, HighlightingManager.Instance);
-                    }
-                };
+            }
+            using (XmlReader reader = new XmlTextReader(stream))
+            {
+                customHighlighting = ICSharpCode.AvalonEdit.Highlighting.Xshd.
+                    HighlightingLoader.Load(reader, HighlightingManager.Instance);
             }
 
             HighlightingManager.Instance.RegisterHighlighting("PL0 Highlighting", new string[] { ".PL0", ".pl0" }, customHighlighting);
@@ -308,7 +308,7 @@ namespace PL0Editor
             if (!Saved)
             {
                 var op = System.Windows.Forms.MessageBox.Show("是否保存文件", "文件已更改", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
-                switch(op)
+                switch (op)
                 {
                     case System.Windows.Forms.DialogResult.OK:
                         Save_Executed(null, null);
@@ -330,7 +330,7 @@ namespace PL0Editor
                 SavePath = dialog.FileName;
                 StatusContent.Text = "文件保存成功";
             }
-            
+
         }
 
         private void ChangeLocation(object sender, KeyEventArgs e)
@@ -585,7 +585,7 @@ namespace PL0Editor
             string path = Environment.CurrentDirectory;     // 当前运行程序的相对路径          
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             process.StartInfo.FileName = path + "\\VM.exe";   // 文件路径 + 文件名       
-            process.StartInfo.Arguments = "\"" + new string(CodeEditor.Text.ToCharArray()) + "\" 0"; 
+            process.StartInfo.Arguments = "\"" + new string(CodeEditor.Text.ToCharArray()) + "\" 0";
             process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
             process.StartInfo.CreateNoWindow = false;
             process.Start();

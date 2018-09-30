@@ -137,6 +137,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>echo y | copy  $(SolutionDir)\VM\bin\Release\VM.exe  $(SolutionDir)\PL0Editor\bin\Release\VM.exe)</PostBuildEvent>
+    <PostBuildEvent>echo y | copy  $(SolutionDir)\VM\$(OutDir)VM.exe  $(TargetDir)
+echo y | copy  $(ProjectDir)PL0.xshd  $(TargetDir)</PostBuildEvent>
   </PropertyGroup>
 </Project>
