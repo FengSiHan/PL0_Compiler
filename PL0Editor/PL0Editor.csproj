@@ -122,10 +122,21 @@
       <Project>{00c89f1a-80b8-4a7d-bb50-f12b4df2dac9}</Project>
       <Name>Compiler</Name>
     </ProjectReference>
+    <ProjectReference Include="..\VM\VM.csproj">
+      <Project>{b3353e54-5f18-46a4-983e-6530da8ac89d}</Project>
+      <Name>VM</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\start.png" />
     <Resource Include="Resources\stop.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>echo y | copy  $(SolutionDir)\VM\bin\Release\VM.exe  $(SolutionDir)\PL0Editor\bin\Release\VM.exe)</PostBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -9,14 +9,34 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
 	    xmlns:Behaviours="clr-namespace:MahApps.Metro.Behaviours;assembly=MahApps.Metro"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        xmlns:search="clr-namespace:ICSharpCode.AvalonEdit.Search"
         mc:Ignorable="d"
                       BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
         ResizeMode="CanResizeWithGrip"
         Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
+    <Window.Resources>
+        <RoutedUICommand x:Key="Open" Text="打开" />
+        <RoutedUICommand x:Key="Save" Text="保存" />
+        <RoutedUICommand x:Key="SaveAs" Text="另存为" />
+        <RoutedUICommand x:Key="Format" Text="代码格式化" />
+        <RoutedUICommand x:Key="Execute" Text="执行" />
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+O" Command="{StaticResource Open}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{StaticResource Save}" />
+        <KeyBinding Gesture="Ctrl+Alt+S" Command="{StaticResource SaveAs}" />
+        <KeyBinding Gesture="Ctrl+K" Command="{StaticResource Format}" />
+        <KeyBinding Gesture="Ctrl+F5" Command="{StaticResource Execute}" />
+    </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Save" CanExecute="Save_CanExecute" Executed="Save_Executed"/>
         <CommandBinding Command="ApplicationCommands.Open" CanExecute="Open_CanExecute" Executed="Open_Executed"/>
+        <CommandBinding Command="{StaticResource Open}" Executed="Open_Executed"/>
+        <CommandBinding Command="{StaticResource Save}" Executed="Save_Executed"/>
+        <CommandBinding Command="{StaticResource SaveAs}" Executed="SaveAs"/>
+        <CommandBinding Command="{StaticResource Format}" Executed="FormatCode"/>
+        <CommandBinding Command="{StaticResource Execute}" Executed="ExecuteCode"/>
     </Window.CommandBindings>
     <DockPanel x:Name="Dock">
         <Menu DockPanel.Dock="Top" Height="28" Style="{StaticResource MS}" VerticalAlignment="Center">
@@ -24,7 +44,12 @@
                 <MenuItem Header="打开" x:Name="SaveMI" Command="ApplicationCommands.Open" CommandTarget="{Binding ElementName=CodeEditor}"/>
                 <MenuItem Command="ApplicationCommands.Save"/>
                 <MenuItem Header="另存为" InputGestureText="Ctrl+Alt+S" Click="SaveAs"/>
-                <MenuItem Header="导出PCode" InputGestureText="Ctrl+P" Click="ExportPCode"/>
+                <MenuItem Header="导出PCode">
+                    <MenuItem Header="无优化" Click="ExportPCode"/>
+                    <MenuItem Header="1级优化" Click="ExportPCode"/>
+                    <MenuItem Header="2级优化" Click="ExportPCode"/>
+                    <MenuItem Header="3级优化" Click="ExportPCode"/>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="编辑" Template="{DynamicResource MenuShowTemp}">
                 <MenuItem Command="ApplicationCommands.Cut"/>
@@ -38,7 +63,7 @@
                 <MenuItem Header="调试" InputGestureText="Ctrl+F5" IsEnabled="False"/>
                 <MenuItem Header="执行" x:Name="ExecuteMI" InputGestureText="F5" Click="ExecuteCode"/>
                 <MenuItem Header="终止执行" x:Name="StopMI" InputGestureText="Shift+F5" Click="StopExecuteCode" IsEnabled="False"/>
-                <MenuItem Header="测试" Click="MenuItem_Click" />
+                <MenuItem Header="外部执行" Click="ExecuteExternally" />
             </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">

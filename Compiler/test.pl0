@@ -11,8 +11,7 @@ repeat
 		k := 6 * i;
 		i := i + 1;
 		write(k);
-		write(i);
-		gett;
+		write(i)
 	end
 until k = 5
 end.

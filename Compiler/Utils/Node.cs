@@ -192,6 +192,39 @@ namespace Compiler
             {
                 return a.Value == b.Value;
             }
+            else if (a.Type == DAGType.Read || a.Type == DAGType.Write)
+            {
+                ArrayList al = a.list, bl = b.list;
+                if (al.Count != bl.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < al.Count; ++i)
+                {
+                    if (al[i].GetType() != bl[i].GetType())
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        if (al[i] is QuadrupleNode)
+                        {
+                            if (((QuadrupleNode)al[i]).Offset != ((QuadrupleNode)bl[i]).Offset)
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if ((int)al[i] != (int)bl[i])
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
             else if ((CmpRecursive(a.Left, b.Left) && CmpRecursive(a.Right, b.Right)) == false)
             {
                 return false;

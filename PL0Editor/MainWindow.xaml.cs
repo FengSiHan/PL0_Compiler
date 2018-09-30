@@ -15,6 +15,7 @@ using System.Xml;
 using System.Windows.Threading;
 using System.Threading;
 using System.Text;
+using System.Windows.Controls;
 
 namespace PL0Editor
 {
@@ -23,16 +24,15 @@ namespace PL0Editor
     /// </summary>
     public partial class MainWindow : MetroWindow
     {
-        private Compiler.Position Location { get; set; }
         public MainWindow()
         {
             InitializeComponent();
             Init();
-            SearchPanel.Install(CodeEditor);
+
             parser = new Parser();
             Temp = new StringBuilder();
             codeCompletion = new CodeCompletion(this);
-            Saved = false;
+            Saved = true;
             Changed = false;
 
             CodeEditor.ShowLineNumbers = true;
@@ -131,7 +131,7 @@ namespace PL0Editor
         public void CodeEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
             int start = CodeEditor.SelectionStart - 1;
-            Changed = true;
+            Saved = false;
             try
             {
                 if (e.Text.Length != 0)
@@ -280,7 +280,7 @@ namespace PL0Editor
 
         private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            if (Saved)
+            if (!string.IsNullOrEmpty(SavePath))
             {
                 File.WriteAllText(SavePath, new string(CodeEditor.Text.ToCharArray()));
                 return;
@@ -294,6 +294,7 @@ namespace PL0Editor
                 Saved = true;
                 SavePath = dialog.FileName;
                 StatusContent.Text = "文件保存成功";
+                Changed = false;
             }
         }
 
@@ -304,7 +305,7 @@ namespace PL0Editor
 
         private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            if (!Saved || Changed)
+            if (!Saved)
             {
                 var op = System.Windows.Forms.MessageBox.Show("是否保存文件", "文件已更改", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
                 switch(op)
@@ -370,6 +371,7 @@ namespace PL0Editor
             private string Code;
             private VirtualMachine VM;
             private MainWindow Window;
+
             internal VMStartup(VirtualMachine vm, string code, MainWindow window)
             {
                 VM = vm;
@@ -377,6 +379,7 @@ namespace PL0Editor
                 Window = window;
                 VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write, window.Ctrl_Write);
             }
+
             internal void Execute()
             {
                 try
@@ -577,8 +580,16 @@ namespace PL0Editor
             catch { }
         }
 
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        private void ExecuteExternally(object sender, RoutedEventArgs e)
         {
+            string path = Environment.CurrentDirectory;     // 当前运行程序的相对路径          
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            process.StartInfo.FileName = path + "\\VM.exe";   // 文件路径 + 文件名       
+            process.StartInfo.Arguments = "\"" + new string(CodeEditor.Text.ToCharArray()) + "\" 0"; 
+            process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+            process.StartInfo.CreateNoWindow = false;
+            process.Start();
+
         }
 
         private void SaveAs(object sender, RoutedEventArgs e)
@@ -604,13 +615,29 @@ namespace PL0Editor
                 StatusContent.Text = "在执行前请改正所有错误";
                 return;
             }
+            MenuItem item = sender as MenuItem;
+            char level = ((string)item.Header)[0];
+            int Level = 0;
+            switch (level)
+            {
+                case '1':
+                    Level = 1;
+                    break;
+                case '2':
+                    Level = 2;
+                    break;
+                case '3':
+                    Level = 3;
+                    break;
+            }
+
             string code = new string(CodeEditor.Text.ToCharArray());
             SaveFileDialog dialog = new SaveFileDialog();
             bool? result = dialog.ShowDialog();
             if (result.Value)
             {
                 PCodeGeneraotr generaotr = new PCodeGeneraotr();
-                generaotr.GenerateCode(code, 0);
+                generaotr.GenerateCode(code, Level);
                 TextWriter writer = new StreamWriter(File.Create(dialog.FileName));
                 Console.SetOut(writer);
                 generaotr.PrintCode();
@@ -632,5 +659,7 @@ namespace PL0Editor
             }
             catch { }
         }
+
+        private Compiler.Position Location { get; set; }
     }
 }
