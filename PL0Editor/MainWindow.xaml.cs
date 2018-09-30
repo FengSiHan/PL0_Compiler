@@ -32,7 +32,6 @@ namespace PL0Editor
             parser = new Parser();
             Temp = new StringBuilder();
             codeCompletion = new CodeCompletion(this);
-            InputText = new StringBuilder();
             Saved = false;
             Changed = false;
 
@@ -75,10 +74,6 @@ namespace PL0Editor
                                 completionWindow.Close();
                                 completionWindow = null;
                                 StatusContent.Text = "代码提示重新载入完成";
-                                lock (InputText)
-                                {
-                                    InputText.Clear();
-                                }
                             }
                         }
                     }
@@ -90,11 +85,10 @@ namespace PL0Editor
             };
             ResetTimer.Start();
         }
-
+        
         CompletionWindow completionWindow;
         Parser parser;
         CodeCompletion codeCompletion;
-        StringBuilder InputText;
         bool Saved;
         string SavePath;
         bool Changed;
@@ -134,6 +128,7 @@ namespace PL0Editor
 
         public void CodeEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
+            int start = CodeEditor.SelectionStart - 1;
             Changed = true;
             try
             {
@@ -141,12 +136,26 @@ namespace PL0Editor
                 {
                     if (char.IsLetterOrDigit(e.Text[0]))
                     {
-                        if (InputText.Length == 0)
+                        while (start > -1 && char.IsLetterOrDigit(CodeEditor.Text[start]))
                         {
-                            StartIndex = CodeEditor.SelectionStart - 1;
+                            --start;
                         }
-                        InputText.Append(e.Text);
-                        Length = InputText.Length;
+                        if (start == -1 || !char.IsLetterOrDigit(CodeEditor.Text[start]))
+                        {
+                            ++start;
+                        }
+                        while (start < CodeEditor.Text.Length && char.IsDigit(CodeEditor.Text[start]))
+                        {
+                            ++start;
+                        }
+                        if (start > CodeEditor.SelectionStart)
+                        {
+                            return;
+                        }
+                        string str = CodeEditor.Text.Substring(start, CodeEditor.SelectionStart - start);
+
+                        StartIndex = start;
+                        Length = str.Length;
                         if (completionWindow == null)
                         {
                             completionWindow = new CompletionWindow(CodeEditor.TextArea);
@@ -169,7 +178,7 @@ namespace PL0Editor
                         {
                             host = codeCompletion.Global;
                         }
-                        List<CompletionInfo> result = host?.Find(InputText[0]);
+                        List<CompletionInfo> result = host?.Find(str[0]);
                         if (result == null || result.Count == 0)
                         {
                             completionWindow.Close();
@@ -192,11 +201,10 @@ namespace PL0Editor
                                 data.Add(tmp);
                             }
                         }
-                        completionWindow.CompletionList.SelectItem(InputText.ToString());
+                        completionWindow.CompletionList.SelectItem(str);
                         completionWindow.Closed += delegate
                         {
                             completionWindow = null;
-                            InputText.Clear();
                         };
                         try
                         {
@@ -226,14 +234,14 @@ namespace PL0Editor
             {
                 StatusContent.Text = "代码提示模块错误......";
             }
-            bool Between(Compiler.Position start, Compiler.Position end, int row)
+            bool Between(Compiler.Position start1, Compiler.Position end, int row)
             {
-                if (ReferenceEquals(start, null) || ReferenceEquals(end, null))
+                if (ReferenceEquals(start1, null) || ReferenceEquals(end, null))
                 {
                     return false;
                 }
                 row--;
-                return row >= start.Row && row <= end.Row;
+                return row >= start1.Row && row <= end.Row;
             }
         }
         public void CodeEditor_TextArea_TextEntering(object sender, TextCompositionEventArgs e)
