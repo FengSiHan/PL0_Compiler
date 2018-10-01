@@ -11,7 +11,7 @@
       \b\d+
     </Rule>
     -->
-    <Keywords foreground="#FF569CD6">
+    <Keywords foreground="#FF0000CD">
       <Word>if</Word>
       <Word>else</Word>
       <Word>var</Word>
@@ -36,6 +36,10 @@
       <Word>+</Word>
       <Word>-</Word>
       <Word>odd</Word>
+    </Keywords>
+    <Keywords foreground="#FF8B0A50">
+      <Word>(</Word>
+      <Word>)</Word>
     </Keywords>
     <Keywords foreground="#FF836FFF">
       <Word>:=</Word>
