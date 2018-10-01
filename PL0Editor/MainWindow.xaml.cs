@@ -33,7 +33,6 @@ namespace PL0Editor
             Temp = new StringBuilder();
             codeCompletion = new CodeCompletion(this);
             Saved = true;
-            Changed = false;
 
             CodeEditor.ShowLineNumbers = true;
             CodeEditor.Options.HighlightCurrentLine = true;
@@ -91,7 +90,6 @@ namespace PL0Editor
         CodeCompletion codeCompletion;
         bool Saved;
         string SavePath;
-        bool Changed;
         bool KeydownHandled = true;
         Thread ConsoleThread;
         public static int StartIndex { get; private set; }
@@ -294,7 +292,6 @@ namespace PL0Editor
                 Saved = true;
                 SavePath = dialog.FileName;
                 StatusContent.Text = "文件保存成功";
-                Changed = false;
             }
         }
 
@@ -325,7 +322,6 @@ namespace PL0Editor
             if (result.Value)
             {
                 CodeEditor.Text = File.ReadAllText(dialog.FileName);
-                Changed = false;
                 Saved = true;
                 SavePath = dialog.FileName;
                 StatusContent.Text = "文件保存成功";

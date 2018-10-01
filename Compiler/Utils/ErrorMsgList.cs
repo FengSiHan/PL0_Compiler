@@ -48,7 +48,7 @@ namespace Compiler
                 Errors.Sort();
 
             }
-            catch (Exception e)
+            catch
             {
 
             }
