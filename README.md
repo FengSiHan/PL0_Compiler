@@ -1,2 +1,7 @@
 # PL0_Compiler
-A simple PL0 compiler with Loop&Global&Local optimization.
+### 实现基本优化、全局优化和循环优化的编译器以及编辑器。
+### 编辑器支持代码格式化、代码高亮、代码提示、执行等。
+![UI截图](http://thyrsi.com/t6/378/1538377050x-1404755516.png)
+
+##### 基本优化基于DAG进行；全局优化实现全局公共子表达式、复制传播、删除死代码；循环优化实现循环不变式、归纳变量、强度削减。
+##### 附上一篇关于优化的总结 https://www.zybuluo.com/mdeditor#1284662
