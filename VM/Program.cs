@@ -13,7 +13,7 @@ namespace VM
             VirtualMachine vm = new VirtualMachine();
             vm.Run(arg[0], Convert.ToInt32(arg[1]));
             Console.WriteLine("请按任意键继续...");
-            Console.ReadKey();
+            Console.ReadKey(); 
         }
     }
 }

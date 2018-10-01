@@ -1,18 +1,17 @@
 ﻿<SyntaxDefinition name="Custom Highlighting" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Comment" foreground="Green" />
   <Color name="String" foreground="Blue" />
-  <Color name="GG" foreground="Yellow" />
+  <Color name="Redundance" foreground="Red" />
 
   <!-- This is the main ruleset. -->
   <RuleSet>
-    <Span color="Comment" begin="//" />
-    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
-    <Span color="GG" multiline="true" begin="\." end="\A\z\Z"/>
-    <!-- Digits -->
-    <Rule foreground="DarkBlue">
+    <Span color="Redundance" multiline="true" begin="\." end="\A\z\Z"/>
+    <!-- Digits
+    <Rule foreground="#FF0200FF">
       \b\d+
     </Rule>
-    <Keywords fontWeight="bold" foreground="Blue">
+    -->
+    <Keywords foreground="#FF569CD6">
       <Word>if</Word>
       <Word>else</Word>
       <Word>var</Word>
@@ -31,14 +30,14 @@
       <!-- ... -->
     </Keywords>
 
-    <Keywords foreground="Red">
+    <Keywords foreground="#FF4EC9B0">
       <Word>*</Word>
       <Word>/</Word>
       <Word>+</Word>
       <Word>-</Word>
       <Word>odd</Word>
     </Keywords>
-    <Keywords foreground="Green">
+    <Keywords foreground="#FF836FFF">
       <Word>:=</Word>
     </Keywords>
     <Keywords foreground="Pink">

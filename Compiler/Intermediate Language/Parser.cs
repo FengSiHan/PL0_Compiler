@@ -61,6 +61,14 @@ namespace Compiler
             {
                 SkipControlList.RemoveAt(SkipControlList.Count - 1);
             }
+            try
+            {
+                if (CurrentToken()?.TokenType != TokenType.PERIOD)
+                {
+                    ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
+                }
+            }
+            catch { }
             StaticCodeAnalysis(null, AstTree);
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
