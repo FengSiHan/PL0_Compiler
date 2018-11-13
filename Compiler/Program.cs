@@ -16,9 +16,11 @@ namespace Compiler
             Parser parser = new Parser();
             parser.Parse(code);
             parser.PrintErrorMsg();
-            Console.WriteLine("按任意键继续");
-            Console.ReadKey();
-
+            if (parser.ErrorMsg.Count() != 0)
+            {
+                Console.WriteLine("按任意键继续");
+                Console.ReadKey();
+            }
             ILGenerator ilg = new ILGenerator();
             ilg.GenerateCode(code, 0);
             ilg.PrintCode();
