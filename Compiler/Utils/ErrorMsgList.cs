@@ -83,7 +83,7 @@ namespace Compiler
 
         public override string ToString()
         {
-            if (Location.Row == -1) return Message + ", At the end of code";
+            if (Location?.Row == -1) return Message + ", At the end of code";
             return Message + ", " + Location;
         }
     }

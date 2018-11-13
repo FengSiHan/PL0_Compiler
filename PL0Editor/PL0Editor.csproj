@@ -107,6 +107,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Utils\packages.config" />
     <None Include="PL0.xshd" />
     <None Include="Properties\Settings.settings">
