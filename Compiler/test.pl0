@@ -10,7 +10,7 @@ repeat
 		read(e);
 		k := 6 * i;
 		i := i + 1;
-		write(k);
+		write(a);
 		write(i)
 	end
 until k = 5

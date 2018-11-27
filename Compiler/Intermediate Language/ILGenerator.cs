@@ -32,7 +32,7 @@ namespace Compiler
                 return;
             }
             Clear();
-            GetQuadruples(Root);
+            GetQuadruples(Root, 0);
             LocateJumpNodeAndDetermineNodeOffset();//获取四元式后，回填跳转地址并且对每个节点赋于地址值
             Optimize optimize = new Optimize(CodeSeg, VarSeg, CodeEntrance);
             if (Level > 0)
@@ -302,7 +302,7 @@ namespace Compiler
             }
         }
 
-        private void GetQuadruples(AstNode now)//dfs
+        private void GetQuadruples(AstNode now, int Level)//dfs
         {
             if (now == null)
             {
@@ -311,7 +311,7 @@ namespace Compiler
             switch (now.Type)
             {
                 case ExprType.SubProgram:
-                    GetQuadruples(now.Left);
+                    GetQuadruples(now.Left, Level);
                     if (CodeEntrance == -1)//为1尚未被赋值
                     {
                         if (now.Right == null)//没有起始语句
@@ -323,16 +323,19 @@ namespace Compiler
                             CodeEntrance = CodeSeg.Count;
                         }
                     }
-                    GetQuadruples(now.Right);
+                    GetQuadruples(now.Right, Level);
                     if (now.Right != null)
                     {
                         CodeSeg.Add(new QuadrupleNode(QuadrupleType.Return));
                     }
                     break;
                 case ExprType.Define:
+                    GetQuadruples(now.Left, Level);
+                    GetQuadruples(now.Right, Level + 1);
+                    break;
                 case ExprType.IdDefine:
-                    GetQuadruples(now.Left);
-                    GetQuadruples(now.Right);
+                    GetQuadruples(now.Left, Level);
+                    GetQuadruples(now.Right, Level);
                     break;
                 case ExprType.ConstDefine:
                     List<AstNode> list = now.Info as List<AstNode>;
@@ -352,13 +355,16 @@ namespace Compiler
                     {
                         return;
                     }
+                    int cnt = 0;
                     foreach (var i in list)
                     {
                         i.Offset = VarSeg.Count;
                         QuadrupleNode var = new QuadrupleNode(QuadrupleType.Var)
                         {
                             Value = i.Left.Info,
-                            Offset = i.Offset
+                            Offset = i.Offset,
+                            AddressOffset = cnt++,
+                            Level = Level
                         };
                         VarSeg.Add(var);
                     }
@@ -377,9 +383,9 @@ namespace Compiler
                             Value = i.Left.Info
                         };
                         ProcedureSeg.Add(proc);
-                        GetQuadruples(i.Right.Left);
+                        GetQuadruples(i.Right.Left, Level);
                         proc.Offset = CodeSeg.Count;//调用直接跳转到当前行
-                        GetQuadruples(i.Right.Right);
+                        GetQuadruples(i.Right.Right, Level);
                         CodeSeg.Add(new QuadrupleNode(QuadrupleType.Return));
                         FreeAllTempData();
                     }
@@ -388,7 +394,7 @@ namespace Compiler
                     list = now.Info as List<AstNode>;
                     foreach (var i in list)
                     {
-                        GetQuadruples(i);
+                        GetQuadruples(i, Level);
                     }
                     break;
                 case ExprType.Assign:
@@ -398,7 +404,7 @@ namespace Compiler
                     };
                     if (assign.Arg2 == null)
                     {
-                        GetQuadruples(now.Right);
+                        GetQuadruples(now.Right, Level);
                         assign.Arg2 = ResultIndex;
                     }
                     CodeSeg.Add(assign);
@@ -416,7 +422,7 @@ namespace Compiler
                     };
                     if (node.Arg1 == null)
                     {
-                        GetQuadruples(now.Left.Left.Left);//左边表达式
+                        GetQuadruples(now.Left.Left.Left, Level);//左边表达式
                         node.Arg1 = ResultIndex;
                     }
                     if (node.Type != QuadrupleType.JO && node.Type != QuadrupleType.JNO)
@@ -424,14 +430,14 @@ namespace Compiler
                         node.Arg2 = GetArg(now.Left.Left.Right);
                         if (node.Arg2 == null)
                         {
-                            GetQuadruples(now.Left.Left.Right);
+                            GetQuadruples(now.Left.Left.Right, Level);
                             node.Arg2 = ResultIndex;
                         }
                     }
 
                     CodeSeg.Add(node);
                     FreeAllTempData();
-                    GetQuadruples(now.Left.Right);
+                    GetQuadruples(now.Left.Right, Level);
                     node.Result = CodeSeg.Count;
                     //不成立跳转到隶属then的语句的之后
                     //跳转指令的result(即目标地址)需要指向一个节点
@@ -442,7 +448,7 @@ namespace Compiler
                         QuadrupleNode LeaveIf = new QuadrupleNode(QuadrupleType.JMP);//goto t
                         CodeSeg.Add(LeaveIf);
                         node.Result = CodeSeg.Count;
-                        GetQuadruples(now.Right);
+                        GetQuadruples(now.Right, Level);
                         //goto t
                         LeaveIf.Result = CodeSeg.Count;
                         FreeAllTempData();
@@ -454,11 +460,11 @@ namespace Compiler
                     {
                         Result = CodeSeg.Count//当前位置
                     };
-                    GetQuadruples(now.Right);
+                    GetQuadruples(now.Right, Level);
                     node.Arg1 = GetArg(now.Left.Left);
                     if (node.Arg1 == null)
                     {
-                        GetQuadruples(now.Left.Left);
+                        GetQuadruples(now.Left.Left, Level);
                         node.Arg1 = ResultIndex;
                     }
 
@@ -467,7 +473,7 @@ namespace Compiler
                         node.Arg2 = GetArg(now.Left.Right);
                         if (node.Arg2 == null)
                         {
-                            GetQuadruples(now.Left.Right);
+                            GetQuadruples(now.Left.Right, Level);
                             node.Arg2 = ResultIndex;
                         }
                     }
@@ -482,7 +488,7 @@ namespace Compiler
                     };
                     if (node.Arg1 == null)
                     {
-                        GetQuadruples(now.Left.Left);
+                        GetQuadruples(now.Left.Left, Level);
                         node.Arg1 = ResultIndex;
                     }
                     if (node.Type != QuadrupleType.JNO && node.Type != QuadrupleType.JO)
@@ -490,7 +496,7 @@ namespace Compiler
                         node.Arg2 = GetArg(now.Left.Right);
                         if (node.Arg2 == null)
                         {
-                            GetQuadruples(now.Left.Right);
+                            GetQuadruples(now.Left.Right, Level);
                             node.Arg2 = ResultIndex;
                         }
                     }
@@ -498,7 +504,7 @@ namespace Compiler
                     int location = CodeSeg.Count;
                     FreeAllTempData();
 
-                    GetQuadruples(now.Right);
+                    GetQuadruples(now.Right, Level);
                     node.Result = CodeSeg.Count;//while 条件不成立跳转
                     QuadrupleNode back = new QuadrupleNode(GetJumpInstruction(op))
                     {
@@ -507,7 +513,7 @@ namespace Compiler
                     back.Arg1 = GetArg(now.Left.Left);
                     if (back.Arg1 == null)
                     {
-                        GetQuadruples(now.Left.Left);
+                        GetQuadruples(now.Left.Left, Level);
                         back.Arg1 = ResultIndex;
                     }
                     if (back.Type != QuadrupleType.JNO && back.Type != QuadrupleType.JO)
@@ -515,13 +521,13 @@ namespace Compiler
                         back.Arg2 = GetArg(now.Left.Right);
                         if (back.Arg2 == null)
                         {
-                            GetQuadruples(now.Left.Right);
+                            GetQuadruples(now.Left.Right, Level);
                             back.Arg2 = ResultIndex;
                         }
                     }
 
                     CodeSeg.Add(back);
-                    node.Result = CodeSeg.Count ;
+                    node.Result = CodeSeg.Count;
                     FreeAllTempData();
                     break;
                 case ExprType.Expr:
@@ -531,7 +537,7 @@ namespace Compiler
                     };
                     if (node1.Arg2 == null)
                     {
-                        GetQuadruples(now.Right);
+                        GetQuadruples(now.Right, Level);
                         node1.Arg2 = ResultIndex;
                     }
                     if (now.Left.Type == ExprType.Minus)// -x -> 0 - x
@@ -543,7 +549,7 @@ namespace Compiler
                         };
                         if (node.Arg2 == null)
                         {
-                            GetQuadruples(now.Left.Right);
+                            GetQuadruples(now.Left.Right, Level);
                             node.Arg2 = ResultIndex;
                         }
                         node.Result = GetTemp();
@@ -555,7 +561,7 @@ namespace Compiler
                         node1.Arg1 = GetArg(now.Left);
                         if (node1.Arg1 == null)
                         {
-                            GetQuadruples(now.Left);
+                            GetQuadruples(now.Left, Level);
                             node1.Arg1 = ResultIndex;
                         }
                     }
@@ -570,13 +576,13 @@ namespace Compiler
                     };
                     if (node.Arg2 == null)
                     {
-                        GetQuadruples(now.Right);
+                        GetQuadruples(now.Right, Level);
                         node.Arg2 = ResultIndex;
                     }
                     node.Arg1 = GetArg(now.Left);
                     if (node.Arg1 == null)
                     {
-                        GetQuadruples(now.Left);
+                        GetQuadruples(now.Left, Level);
                         node.Arg1 = ResultIndex;
                     }
                     node.Result = GetTemp();
@@ -605,7 +611,7 @@ namespace Compiler
                         }
                         else if (i.Type == ExprType.Const)
                         {
-                            param.Add(ConstSeg[i.Offset]);
+                            param.Add("#" + ConstSeg[i.Offset]);
                         }
                     }
                     CodeSeg.Add(new QuadrupleNode(QuadrupleType.Write, param));

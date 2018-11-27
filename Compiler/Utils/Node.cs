@@ -58,6 +58,8 @@ namespace Compiler
         public int Offset;
         public int? Result;//表示临时变量，或者跳转地址
         public bool Active;
+        public int Level;
+        public int AddressOffset;
         internal Optimize.Block JumpAddr;
         public QuadrupleNode(QuadrupleType type, Object arg1 = null, Object arg2 = null)
         {
