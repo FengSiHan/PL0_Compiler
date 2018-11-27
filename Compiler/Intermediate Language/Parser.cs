@@ -109,10 +109,10 @@ namespace Compiler
                                 ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
                                 break;
                             case 1:
-                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
                                 break;
                             case 2:
-                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
                                 break;
                         }
                     }
@@ -128,10 +128,10 @@ namespace Compiler
                                 ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
                                 break;
                             case 1:
-                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
                                 break;
                             case 2:
-                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
                                 break;
                         }
                     }
@@ -148,10 +148,10 @@ namespace Compiler
                                 ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
                                 break;
                             case 1:
-                                ErrorMsg.Add($"Unknown Token '{i.Left.Info}'", i.Location);
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
                                 break;
                             case 2:
-                                ErrorMsg.Add($"Unexpected Token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
                                 break;
                             case 0:
                                 StaticCodeAnalysis(env, i.Right);
@@ -268,7 +268,7 @@ namespace Compiler
                         Definition.Add(node);
                         if (CurrentToken().TokenType != TokenType.NUM)
                         {
-                            ErrorMsg.Add($"Unexpected Token '{CurrentToken().Content}', Only number can be assigned to const ID", next.Location);
+                            ErrorMsg.Add($"Unexpected token '{CurrentToken().Content}', Only number can be assigned to const ID", next.Location);
 
                             if (!tokens.MoveNext())
                             {
@@ -314,7 +314,7 @@ namespace Compiler
                         if (!tokens.MoveNext()) throw new SyntaxErrorException("Expect value for assignment", next.Location);
                         if (CurrentToken().TokenType != TokenType.NUM)
                         {
-                            ErrorMsg.Add($"Unexpected Token '{next.Content}',Only number can be assigned to const ID", next.Location);
+                            ErrorMsg.Add($"Unexpected token '{next.Content}',Only number can be assigned to const ID", next.Location);
                             if (!tokens.MoveNext())
                             {
                                 break;
@@ -490,13 +490,13 @@ namespace Compiler
                     }
                     else if (CurrentToken() != null && CurrentToken().Content is string && Keys.Contains(CurrentToken().Content))
                     {
-                        throw new SyntaxErrorException("Missing Expected Token ';' in var declaration", position);
+                        throw new SyntaxErrorException("Missing expected Token ';' in var declaration", position);
                     }
                     else if (CurrentToken().TokenType == TokenType.ID)
                     {
-                        throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}',there should be a ',' or ';' in front of it", position);
+                        throw new SyntaxErrorException($"Unexpected token '{CurrentToken()?.Content}',there should be a ',' or ';' in front of it", position);
                     }
-                    else throw new SyntaxErrorException($"Unexpected Token '{next.Content}'", next.Location);
+                    else throw new SyntaxErrorException($"Unexpected token '{next.Content}'", next.Location);
                 }
                 CheckExpectToken(Token.SEMICOLON);
             }
@@ -603,7 +603,7 @@ namespace Compiler
                             }
                             else
                             {
-                                throw new SyntaxErrorException($"Expect Statement after 'else'", line);
+                                throw new SyntaxErrorException($"Expect statement after 'else'", line);
                             }
                         }
                         return node_ifelse;
@@ -633,7 +633,7 @@ namespace Compiler
                         }
                         else
                         {
-                            throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}',Expect Function name after call", Line);
+                            throw new SyntaxErrorException($"Unexpected token '{CurrentToken()?.Content}',Expect function name after call", Line);
                         }
                         return node_call;
                     case "read":
@@ -654,11 +654,11 @@ namespace Compiler
                         {
                             if (CurrentToken() == null)
                             {
-                                throw new SyntaxErrorException("Expect ID for Read argument", Line);
+                                throw new SyntaxErrorException("Expect ID as read function argument", Line);
                             }
                             else if (CurrentToken().TokenType != TokenType.ID)
                             {
-                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' can't be argument of Read function", Line);
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of Read function", Line);
                             }
                             args.Add(new AstNode(ExprType.UnknownID, info: CurrentToken().Content));
                             if (tokens.MoveNext() == false)
@@ -669,7 +669,7 @@ namespace Compiler
                             {
                                 if ((char)CurrentToken().Content == '(')
                                 {
-                                    throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}'", Line);
+                                    throw new SyntaxErrorException($"Unexpected token '{CurrentToken()?.Content}'", Line);
                                 }
                                 else
                                 {
@@ -678,7 +678,7 @@ namespace Compiler
                             }
                             else
                             {
-                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' follow read", CurrentToken().Location);
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' follow read", CurrentToken().Location);
                             }
                         }
                         while (tokens.MoveNext() && CurrentToken().TokenType != TokenType.BRACKET && Keys.Contains(CurrentToken().Content) == false);
@@ -693,7 +693,7 @@ namespace Compiler
                         if (CurrentToken() == Token.RBRACKET)
                         {
                             CheckExpectToken(Token.RBRACKET);
-                            throw new SyntaxErrorException("Write funtion needs one or more arguments", Line);
+                            throw new SyntaxErrorException("Write funtion requires at least one argument", Line);
                         }
 
                         node = new AstNode(ExprType.Write, Line);
@@ -703,11 +703,11 @@ namespace Compiler
                         {
                             if (CurrentToken() == null)
                             {
-                                throw new SyntaxErrorException("Expect ID for Write argument", Line);
+                                throw new SyntaxErrorException("Expect ID for write argument", Line);
                             }
                             else if (CurrentToken().TokenType != TokenType.ID)
                             {
-                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' can't be argument of write function", Line);
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of write function", Line);
                             }
                             args.Add(new AstNode(ExprType.UnknownID, info: CurrentToken().Content));
 
@@ -719,7 +719,7 @@ namespace Compiler
                             {
                                 if ((char)CurrentToken().Content == '(')
                                 {
-                                    throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}'", Line);
+                                    throw new SyntaxErrorException($"Unexpected token '{CurrentToken()?.Content}'", Line);
                                 }
                                 else
                                 {
@@ -732,7 +732,7 @@ namespace Compiler
                             }
                             else if (CurrentToken().TokenType != TokenType.COMMA)
                             {
-                                throw new SyntaxErrorException($"Unexpected Token '{CurrentToken().Content}' followed write", CurrentToken().Location);
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' followed write", CurrentToken().Location);
                             }
                         }
                         while (tokens.MoveNext() && CurrentToken().TokenType != TokenType.BRACKET && Keys.Contains(CurrentToken().Content) == false);
@@ -762,7 +762,7 @@ namespace Compiler
                             || CurrentToken() == Token.END || CurrentToken() == Token.CONST
                             || CurrentToken() == Token.VAR || CurrentToken() == Token.DO)
                         {
-                            throw new SyntaxErrorException($"Unexcepted Token '{CurrentToken().Content}' ,Statement can't start with '{CurrentToken().Content}', Maybe there is a surplus ';' at the end of last statement", CurrentToken().Location);
+                            throw new SyntaxErrorException($"Unexcepted token '{CurrentToken().Content}' ,Statement can't start with '{CurrentToken().Content}', Maybe there is a surplus ';' at the end of last statement", CurrentToken().Location);
                         }
                         AstNode node_assign = new AstNode(ExprType.Assign, CurrentToken().Location)
                         {
