@@ -317,7 +317,7 @@ namespace Compiler
                                     break;
                                 }
                             }
-                            if (!find && false) //交换左右节点顺序再查找一次
+                            if (!find) //交换左右节点顺序再查找一次
                             {
 
                                 var tmp = node.Right;
@@ -333,20 +333,20 @@ namespace Compiler
                                     }
                                 }
                                 //这里还原不还原似乎问题不大，考虑写表达式的时候可能习惯性和前面一样，所以还是交换回来
-                                if (!find)
-                                {
-                                    tmp = node.Right;
-                                    node.Right = node.Left;
-                                    node.Left = tmp;
-                                }
+                                tmp = node.Right;
+                                node.Right = node.Left;
+                                node.Left = tmp;
+
                             }
                             if (!find)
                             {
                                 Result.CurrentValue = node;
                                 block.ExprSet.Add(GetValue(Result));
                             }
-
-                            Result.CurrentValue.Add(Result);
+                            if (!find)
+                            {
+                                Result.CurrentValue.Add(Result);
+                            }
 
                         }
                     }

@@ -607,6 +607,7 @@ namespace PL0Editor
                 StatusContent.Text = "文件另存成功";
             }
         }
+
         private void ExportPCode(object sender, RoutedEventArgs e)
         {
             List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
@@ -666,8 +667,28 @@ namespace PL0Editor
         {
             if (disp == null) disp = new DisplayWindow(this);
             PCodeGeneraotr pg = new PCodeGeneraotr();
-            pg.GenerateCode(CodeEditor.Text, 0);
+            pg.GenerateCode(CodeEditor.Text, 1);
             disp.Show(pg.GetPCodeString());
+        }
+
+        private void DisplayQ(object sender, RoutedEventArgs e)
+        {
+            if (disp == null) disp = new DisplayWindow(this);
+            ILGenerator generator = new ILGenerator();
+            generator.GenerateCode(CodeEditor.Text, 1);
+            disp.Show(generator.GetCodeString());
+        }
+
+        private void UpdateCodeEditor(object sender, MouseButtonEventArgs e)
+        {
+            completionWindow?.Close();
+
+            try
+            {
+                RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
+                ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
+            }
+            catch { }
         }
     }
 }

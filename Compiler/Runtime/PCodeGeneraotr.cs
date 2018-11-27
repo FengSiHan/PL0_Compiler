@@ -120,12 +120,13 @@ namespace Compiler
                     case PCode.WRT:
                         sb.Append("\n");
                         break;
+                        /*
                     case PCode.LOD:
                         sb.Append($"{i.Level}, {i.Offset}\n");
                         break;
                     case PCode.STO:
                         sb.Append($"{i.Level}, {i.Offset}\n");
-                        break;
+                        break;*/
                     default:
                         switch (i.DataType)
                         {

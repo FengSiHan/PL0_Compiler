@@ -75,6 +75,8 @@ namespace Compiler
             Type = old.Type;
             Arg1 = old.Arg1;
             Arg2 = old.Arg2;
+            Offset = old.Offset;
+            Level = old.Level;
             AddressOffset = old.AddressOffset;
         }
     }

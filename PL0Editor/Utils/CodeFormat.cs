@@ -59,7 +59,7 @@ namespace PL0Editor
                     {
                         Temp.Append($"{list[i].Left.Info} = {list[i].Right.Info}, ");
                     }
-                    Temp.Append($"{list[list.Count - 1].Left.Info};\n");
+                    Temp.Append($"{list[list.Count - 1].Left.Info} = {list[list.Count - 1].Right.Info};\n");
                     break;
                 case ExprType.VarDefine:
                     list = Node.Info as List<AstNode>;

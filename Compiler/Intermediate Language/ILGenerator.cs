@@ -203,6 +203,136 @@ namespace Compiler
             }
         }
 
+        public string GetCodeString()
+        {
+            StringBuilder sb = new StringBuilder();
+            if (!Done)
+            {
+                sb.Append("Please generate intermediate code first\n");
+                return sb.ToString() ;
+            }
+            if (NumOfError != 0)
+            {
+                PrintError();
+                sb.Append("Code needs correcting before generating code\n");
+                return sb.ToString();
+            }
+            int index = 0;
+            foreach (QuadrupleNode i in CodeSeg)
+            {
+                if (i == null)
+                {
+                    continue;
+                }
+                sb.Append(string.Format("{0,-3}-> ", index++));
+                sb.Append(string.Format("{0,-6} ", Enum.GetName(i.Type.GetType(), i.Type)));
+                if (i.Type == QuadrupleType.Return)
+                {
+                    sb.Append("\n");
+                    continue;
+                }
+                else if (i.Type == QuadrupleType.JMP)
+                {
+                    sb.Append(i.Result);
+                    sb.Append("\n");
+                    continue;
+                }
+                if (i.Type == QuadrupleType.Write || i.Type == QuadrupleType.Read)
+                {
+                    ArrayList list = (ArrayList)i.Arg1;
+                    for (int k = 0; k < list.Count; ++k)
+                    {
+                        if (list[k] is int)
+                        {
+                            sb.Append($"t{list[k]}");
+                        }
+                        else if (list[k] is QuadrupleNode)
+                        {
+                            var t = list[k] as QuadrupleNode;
+                            if (t.Type == QuadrupleType.Var)
+                            {
+                                sb.Append(VarSeg[t.Offset].Value);
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(list[k]);
+                        }
+                        if (k != list.Count - 1)
+                        {
+                            sb.Append(", ");
+                        }
+                    }
+                    sb.Append('\n');
+                    continue;
+                }
+                else if (i.Type == QuadrupleType.Call)
+                {
+                    sb.Append(i.Result);
+                    sb.Append('\n');
+                    continue;
+                }
+                else if (i.Arg1 is QuadrupleNode)
+                {
+                    var t = i.Arg1 as QuadrupleNode;
+                    if (t.Type == QuadrupleType.Var)
+                    {
+                        sb.Append(t.Value);
+                    }
+                    else sb.Append($"t{t.Result}");
+                }
+                else if (i.Arg1 is string && ((string)i.Arg1).StartsWith("#"))
+                {
+                    sb.Append(i.Arg1);
+                }
+                else if (i.Arg1 != null)
+                {
+                    sb.Append($"t{i.Arg1}");
+                }
+                sb.Append(", ");
+                if (i.Arg2 is QuadrupleNode)
+                {
+                    var t = i.Arg2 as QuadrupleNode;
+                    if (t.Type == QuadrupleType.Var)
+                    {
+                        sb.Append(t.Value);
+                    }
+                    else
+                    {
+                        sb.Append($"t{t.Result}");
+                    }
+                }
+                else if (i.Arg2 is string && ((string)i.Arg2).StartsWith("#"))
+                {
+                    sb.Append(i.Arg2);
+                }
+                else if (i.Arg2 != null)
+                {
+                    sb.Append($"t{i.Arg2}");
+                }
+                if (Enum.GetName(i.Type.GetType(), i.Type).StartsWith("J") == false && i.Result != null)
+                {
+                    int value = (int)i.Result;
+                    if (value < 0)
+                    {
+                        sb.Append($", {VarSeg[-value].Value}");
+                    }
+                    else
+                    {
+                        sb.Append($", t{i.Result}");
+                    }
+                }
+                else if (i.Result != null)
+                {
+                    if (i.Result > 0)
+                    {
+                        sb.Append(", " + i.Result);
+                    }
+                }
+                sb.Append('\n');
+            }
+            return sb.ToString();
+        }
 
         public ILGenerator()
         {

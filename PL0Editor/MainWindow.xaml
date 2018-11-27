@@ -64,7 +64,10 @@
                 <MenuItem Header="终止执行" x:Name="StopMI" InputGestureText="Shift+F5" Click="StopExecuteCode" IsEnabled="False"/>
                 <MenuItem Header="外部执行" Click="ExecuteExternally" />
             </MenuItem>
-            <MenuItem Header="PCode" Template="{DynamicResource MenuShowTemp}" Click="DisplayPCode"/>
+            <MenuItem Header="PCode" Template="{DynamicResource MenuShowTemp}">
+                <MenuItem Header="PCode" Click="DisplayPCode"/>
+                <MenuItem Header="四元式" Click="DisplayQ" />
+            </MenuItem>
 
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">
@@ -125,7 +128,9 @@
 				FontFamily="Consolas"
 				FontSize="12pt"
                 Foreground="#4A4A4A"
-				SyntaxHighlighting="C#" KeyUp="ChangeLocation"/>
+				SyntaxHighlighting="C#" KeyUp="ChangeLocation"
+                MouseDown="UpdateCodeEditor"
+                MouseUp="UpdateCodeEditor"/>
 
     </DockPanel>
     <!--
