@@ -69,6 +69,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Resources\DisplayWindow.cs" />
     <Compile Include="Utils\CodeFormat.cs" />
     <Compile Include="Utils\DataConverter.cs" />
     <Compile Include="Utils\CodeCompletion.cs" />

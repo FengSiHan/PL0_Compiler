@@ -89,7 +89,64 @@ namespace Compiler
                 }
             }
         }
-
+        public string GetPCodeString()
+        {
+            if (Programs.Count == 0)
+            {
+                return "Please correct all errors or Call 'GeneratePCode' first";
+            }
+            int index = 0;
+            StringBuilder sb = new StringBuilder();
+            foreach (var i in Programs)
+            {
+                sb.Append(string.Format("{0,-3}-> ", index++));
+                sb.Append(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
+                switch (i.INS)
+                {
+                    case PCode.ADD:
+                    case PCode.DIV:
+                    case PCode.EQL:
+                    case PCode.EXP:
+                    case PCode.GEQ:
+                    case PCode.GRT:
+                    case PCode.HALT:
+                    case PCode.LER:
+                    case PCode.LSS:
+                    case PCode.MOD:
+                    case PCode.MUL:
+                    case PCode.NEQ:
+                    case PCode.SUB:
+                    case PCode.XOR:
+                    case PCode.WRT:
+                        sb.Append("\n");
+                        break;
+                    case PCode.LOD:
+                        sb.Append($"{i.Level}, {i.Offset}\n");
+                        break;
+                    case PCode.STO:
+                        sb.Append($"{i.Level}, {i.Offset}\n");
+                        break;
+                    default:
+                        switch (i.DataType)
+                        {
+                            case 1:
+                            case 4:
+                                sb.Append(i.Arg);
+                                sb.Append('\n');
+                                break;
+                            case 2:
+                                sb.Append($"t{i.Arg}\n");
+                                break;
+                            case 3:
+                                sb.Append(VarSeg[i.Arg].Value);
+                                sb.Append('\n');
+                                break;
+                        }
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
         public int NumOfError { get; private set; }
 
         private void GetPCode()

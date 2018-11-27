@@ -248,6 +248,8 @@ namespace PL0Editor
     public class CompletionData : ICompletionData
     {
         public CompletionInfo Data;
+        public delegate void SetStatusDelegate(string str);
+        public SetStatusDelegate SetStatus;
         public CompletionData(CompletionInfo data)
         {
             this.Text = data.Info;
@@ -282,7 +284,7 @@ namespace PL0Editor
             }
             catch
             {
-                MessageBox.Show("代码提示模块出现错误");
+                //SetStatus?.BeginInvoke("代码提示模块出现错误", null, null);
             }
         }
 

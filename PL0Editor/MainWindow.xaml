@@ -64,6 +64,8 @@
                 <MenuItem Header="终止执行" x:Name="StopMI" InputGestureText="Shift+F5" Click="StopExecuteCode" IsEnabled="False"/>
                 <MenuItem Header="外部执行" Click="ExecuteExternally" />
             </MenuItem>
+            <MenuItem Header="PCode" Template="{DynamicResource MenuShowTemp}" Click="DisplayPCode"/>
+
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom"  Height="24" Background="#007ACC" HorizontalAlignment="Stretch" Foreground="White">
             <Grid Margin="0,-2,0,0" HorizontalAlignment="Stretch" Width="{Binding ElementName=Status, Path=ActualWidth}">

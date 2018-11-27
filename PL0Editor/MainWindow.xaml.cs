@@ -94,6 +94,7 @@ namespace PL0Editor
         string SavePath;
         bool KeydownHandled = true;
         Thread ConsoleThread;
+        DisplayWindow disp;
         public static int StartIndex { get; private set; }
         public static int Length { get; private set; }
 
@@ -189,6 +190,7 @@ namespace PL0Editor
                         foreach (var i in result)
                         {
                             var tmp = new CompletionData(i);
+                            //tmp.SetStatus = (s) => { StatusContent.Invoke(() => { StatusContent.Text = s; }); };
                             bool find = false;
                             foreach (var k in data)
                             {
@@ -659,5 +661,13 @@ namespace PL0Editor
         }
 
         private Compiler.Position Location { get; set; }
+
+        private void DisplayPCode(object sender, RoutedEventArgs e)
+        {
+            if (disp == null) disp = new DisplayWindow(this);
+            PCodeGeneraotr pg = new PCodeGeneraotr();
+            pg.GenerateCode(CodeEditor.Text, 0);
+            disp.Show(pg.GetPCodeString());
+        }
     }
 }
