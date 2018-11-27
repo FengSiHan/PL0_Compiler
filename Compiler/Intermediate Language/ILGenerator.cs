@@ -380,7 +380,8 @@ namespace Compiler
                         i.Offset = ProcedureSeg.Count;
                         var proc = new QuadrupleNode(QuadrupleType.Proc)
                         {
-                            Value = i.Left.Info
+                            Value = i.Left.Info,
+                            Level = Level
                         };
                         ProcedureSeg.Add(proc);
                         GetQuadruples(i.Right.Left, Level);
@@ -593,7 +594,9 @@ namespace Compiler
                     ArrayList param = new ArrayList();
                     foreach (var i in (List<AstNode>)now.Info)
                     {
-                        param.Add(VarSeg[i.Offset]);
+                        var n = new QuadrupleNode(VarSeg[i.Offset]);
+                        n.Level = Level - VarSeg[i.Offset].Level;
+                        param.Add(n);
                     }
                     CodeSeg.Add(new QuadrupleNode(QuadrupleType.Read, param));
                     break;
@@ -607,7 +610,9 @@ namespace Compiler
                         }
                         else if (i.Type == ExprType.Var)
                         {
-                            param.Add(VarSeg[i.Offset]);
+                            var n = new QuadrupleNode(VarSeg[i.Offset]);
+                            n.Level = Level - VarSeg[i.Offset].Level;
+                            param.Add(n);
                         }
                         else if (i.Type == ExprType.Const)
                         {

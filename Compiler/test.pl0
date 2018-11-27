@@ -3,7 +3,7 @@ var e,d,k,i,j;
 procedure get;
 const a = 4;
 var b,sa,h;
-write(b);
+write(e);
 begin
 repeat
 	begin	

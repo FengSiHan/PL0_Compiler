@@ -54,7 +54,7 @@ namespace Compiler
                 }
                 else if (ErrorMsg.Errors.Count != 0)
                 {
-                    ErrorMsg.Add("Expect more code", CurrentToken()?.Location);
+                    ErrorMsg.Add("Expect more input", CurrentToken()?.Location);
                 }
             }
             finally
@@ -233,10 +233,8 @@ namespace Compiler
 
                     AstNode node = new AstNode(ExprType.Const,
                         new AstNode(ExprType.ConstID, null, null, peek.Content, peek.Location),
-                        location: peek.Location)
-                    {
-                        Initialized = true
-                    };
+                        location: peek.Location);
+                    node.Initialized = true;
                     //Left is Node of ID,Right is its value
                     if (!tokens.MoveNext())
                     {
@@ -246,6 +244,7 @@ namespace Compiler
                     if (next == null || next.TokenType == TokenType.SEMICOLON)
                     {
                         Definition.Add(node);
+                        ErrorMsg.Add($"Expect value for assignment", node.Location);
                         break;
                     }
 
@@ -254,14 +253,14 @@ namespace Compiler
                         Definition.Add(node);
                         if (!tokens.MoveNext())
                         {
-                            break;
+                            throw new SyntaxErrorException($"Expect value for assignment", next.Location);
                         }
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
                         if (!tokens.MoveNext())
                         {
-                            throw new SyntaxErrorException("Expect value for assign", next.Location);
+                            throw new SyntaxErrorException("Expect value for assignment", next.Location);
                         }
 
                         Definition.Add(node);
@@ -399,7 +398,7 @@ namespace Compiler
                     Token peek = CurrentToken();
                     if (peek.TokenType != TokenType.ID)
                     {
-                        throw new SyntaxErrorException($"Unexpected Token '{peek.Content}',Expect ID in var declaration", peek.Location);
+                        throw new SyntaxErrorException($"Unexpected Token '{peek.Content}', Expect ID in var declaration", peek.Location);
                     }
 
                     AstNode node = new AstNode(ExprType.Var, new AstNode(ExprType.VarID, null, null, peek.Content, peek.Location), location: peek.Location); //Left is Node of ID,Right is its value
@@ -1232,7 +1231,7 @@ namespace Compiler
                 throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}' ,Miss Expected tokens '{Expect?.Content}'",
                     (CurrentToken() == null ? new Position(-1, 0) : CurrentToken()?.Location));
             }
-            if (!tokens.MoveNext())
+            if (Expect.TokenType != TokenType.PERIOD && !tokens.MoveNext())
             {
                 throw new Exception();
             }

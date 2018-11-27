@@ -70,6 +70,13 @@ namespace Compiler
             CurrentValue = null;
             Result = null;//表示未初始化
         }
+        public QuadrupleNode(QuadrupleNode old)
+        {
+            Type = old.Type;
+            Arg1 = old.Arg1;
+            Arg2 = old.Arg2;
+            AddressOffset = old.AddressOffset;
+        }
     }
 
     public class DAGNode : IEqualityComparer<DAGNode>, IEquatable<DAGNode>

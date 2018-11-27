@@ -65,6 +65,12 @@ namespace Compiler
                     case PCode.WRT:
                         Console.WriteLine();
                         break;
+                    case PCode.LOD:
+                        Console.WriteLine($"{i.Level}, {i.Offset}");
+                        break;
+                    case PCode.STO:
+                        Console.WriteLine($"{i.Level}, {i.Offset}");
+                        break;
                     default:
                         switch (i.DataType)
                         {
@@ -149,7 +155,7 @@ namespace Compiler
                         Add(new PNode(PCode.LOD, ((QuadrupleNode)(Node.Arg2)).Offset, 3));
                     }
                     var qnode = (QuadrupleNode)(Node.Arg1);
-                    Add(new PNode(PCode.STO, qnode.Offset, 3) { Offset = qnode.Offset, Level = qnode.Level });
+                    Add(new PNode(PCode.STO, qnode.Offset, 3) { Offset = qnode.AddressOffset, Level = qnode.Level });
                     break;
                 case QuadrupleType.Write:
                     var list = Node.Arg1 as ArrayList;
@@ -158,10 +164,11 @@ namespace Compiler
                         if (i is string)
                         {
                             Add(new PNode(PCode.LIT, Convert.ToInt32(((string)i).Substring(1)), 1));
+                            Add(new PNode(PCode.WRT));
                             continue;
                         }
                         var param = i as QuadrupleNode;
-                        Add(new PNode(PCode.LOD, param.Offset, 3) { Offset = param.Offset, Level = param.Level });
+                        Add(new PNode(PCode.LOD, param.Offset, 3) { Offset = param.AddressOffset, Level = param.Level });
                         Add(new PNode(PCode.WRT));
                     }
                     break;
@@ -170,7 +177,7 @@ namespace Compiler
                     foreach (var i in list)
                     {
                         var param = i as QuadrupleNode;
-                        Add(new PNode(PCode.RED, param.Offset, 3) { Offset = param.Offset, Level = param.Level });
+                        Add(new PNode(PCode.RED, param.Offset, 3) { Offset = param.AddressOffset, Level = param.Level });
                     }
                     break;
             }

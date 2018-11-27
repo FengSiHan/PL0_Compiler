@@ -41,8 +41,10 @@ namespace PL0Editor
 
             //后台代码检查线程
             AnalyzeCodeError();
-            DispatcherTimer ErrorUpdateTimer = new DispatcherTimer();
-            ErrorUpdateTimer.Interval = TimeSpan.FromSeconds(2);
+            DispatcherTimer ErrorUpdateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2),
+            };
             ErrorUpdateTimer.Tick += (i, j) =>
             {
                 AnalyzeCodeError();
