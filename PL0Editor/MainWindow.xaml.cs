@@ -390,7 +390,7 @@ namespace PL0Editor
                         Window.StopMI.IsEnabled = true;
                         Window.StatusContent.Text = "程序开始执行";
                     });
-                    VM.Run(Code, 2);
+                    VM.Run(Code, 0);
                     Window.Invoke(() =>
                     {
                         Window.ExecuteMI.IsEnabled = true;
@@ -667,16 +667,46 @@ namespace PL0Editor
         private void DisplayPCode(object sender, RoutedEventArgs e)
         {
             if (disp == null) disp = new DisplayWindow(this);
+            MenuItem item = sender as MenuItem;
+            char level = ((string)item.Header)[0];
+            int Level = 0;
+            switch (level)
+            {
+                case '1':
+                    Level = 1;
+                    break;
+                case '2':
+                    Level = 2;
+                    break;
+                case '3':
+                    Level = 3;
+                    break;
+            }
             PCodeGeneraotr pg = new PCodeGeneraotr();
-            pg.GenerateCode(CodeEditor.Text, 1);
+            pg.GenerateCode(CodeEditor.Text, Level);
             disp.Show(pg.GetPCodeString());
         }
 
         private void DisplayQ(object sender, RoutedEventArgs e)
         {
             if (disp == null) disp = new DisplayWindow(this);
+            MenuItem item = sender as MenuItem;
+            char level = ((string)item.Header)[0];
+            int Level = 0;
+            switch (level)
+            {
+                case '1':
+                    Level = 1;
+                    break;
+                case '2':
+                    Level = 2;
+                    break;
+                case '3':
+                    Level = 3;
+                    break;
+            }
             ILGenerator generator = new ILGenerator();
-            generator.GenerateCode(CodeEditor.Text, 2);
+            generator.GenerateCode(CodeEditor.Text, Level);
             disp.Show(generator.GetCodeString());
         }
 

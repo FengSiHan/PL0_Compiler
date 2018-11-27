@@ -65,8 +65,18 @@
                 <MenuItem Header="外部执行" Click="ExecuteExternally" />
             </MenuItem>
             <MenuItem Header="PCode" Template="{DynamicResource MenuShowTemp}">
-                <MenuItem Header="PCode" Click="DisplayPCode"/>
-                <MenuItem Header="四元式" Click="DisplayQ" />
+                <MenuItem Header="PCode">
+                    <MenuItem Header="无优化" Click="DisplayPCode"/>
+                    <MenuItem Header="1级优化" Click="DisplayPCode"/>
+                    <MenuItem Header="2级优化" Click="DisplayPCode"/>
+                    <MenuItem Header="3级优化" Click="DisplayPCode"/>
+                </MenuItem>
+                <MenuItem Header="四元式">
+                    <MenuItem Header="无优化" Click="DisplayQ"/>
+                    <MenuItem Header="1级优化" Click="DisplayQ"/>
+                    <MenuItem Header="2级优化" Click="DisplayQ"/>
+                    <MenuItem Header="3级优化" Click="DisplayQ"/>
+                </MenuItem>
             </MenuItem>
 
         </Menu>
