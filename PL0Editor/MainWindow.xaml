@@ -13,7 +13,7 @@
         BorderThickness="4"
         GlowBrush="{DynamicResource AccentColorBrush}"
         ResizeMode="CanResizeWithGrip"
-        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7">
+        Title="PL0 Editor" Height="600" Width="1000" Background="#FF45B0E7" Icon="Resources/icon.ico">
     <Window.Resources>
         <RoutedUICommand x:Key="Open" Text="打开" />
         <RoutedUICommand x:Key="Save" Text="保存" />

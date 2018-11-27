@@ -133,6 +133,9 @@
     <Resource Include="Resources\start.png" />
     <Resource Include="Resources\stop.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\icon.ico" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
