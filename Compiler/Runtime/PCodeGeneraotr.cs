@@ -132,15 +132,29 @@ namespace Compiler
                         {
                             case 1:
                             case 4:
-                                sb.Append(i.Arg);
-                                sb.Append('\n');
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
+                                {
+                                    sb.Append($"{i.Level}, {i.Offset}\n");
+                                }
+                                else
+                                {
+                                    sb.Append(i.Arg);
+                                    sb.Append('\n');
+                                }
                                 break;
                             case 2:
                                 sb.Append($"t{i.Arg}\n");
                                 break;
                             case 3:
-                                sb.Append(VarSeg[i.Arg].Value);
-                                sb.Append('\n');
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
+                                {
+                                    sb.Append($"{i.Level}, {i.Offset}\n");
+                                }
+                                else
+                                {
+                                    sb.Append(VarSeg[i.Arg].Value);
+                                    sb.Append('\n');
+                                }
                                 break;
                         }
                         break;
