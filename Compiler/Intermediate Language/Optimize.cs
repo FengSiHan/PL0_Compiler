@@ -710,11 +710,12 @@ namespace Compiler
                         {
                             if (j.Right.Type == DAGType.Sub || j.Right.Type == DAGType.Add)
                             {
+                                int x = j.Right.Type == DAGType.Add ? 1 : -1;
                                 if (j.Right.Left.Type == DAGType.Num)
                                 {
                                     if (j.Right.Right.Type == DAGType.Var && j.Right.Right.Offset == j.Left.Offset)
                                     {
-                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, (int)j.Right.Left.Value, j.Type));
+                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, x * (int)j.Right.Left.Value, j.Type));
                                         DectectedInductionVar[j.Left.Offset] = true;
                                     }
                                 }
@@ -722,7 +723,7 @@ namespace Compiler
                                 {
                                     if (j.Right.Left.Type == DAGType.Var && j.Right.Left.Offset == j.Left.Offset)
                                     {
-                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, (int)j.Right.Right.Value, j.Type));
+                                        loop.BaseInductionVar.Add(j.Left.Offset, new InductionVar(Blocks[i], DAG, k, j, j.Left.Offset, x * (int)j.Right.Right.Value, j.Type));
                                         DectectedInductionVar[j.Left.Offset] = true;
                                     }
                                 }
@@ -763,7 +764,7 @@ namespace Compiler
                         while (stack.Count != 0 && isInduction)
                         {
                             //每次处理掉top的左节点，那么右节点就是一个表达式，继续入栈
-                            //Left要求左右为一个归纳变量或者一个循环不变表达式,和一个Num
+                            //Left要求左右为一个归纳变量或者一个循环不变表达式,或者一个Num
                             DAGNode top = stack.Pop();
                             top = GetValue(top);
                             if (top.Type == DAGType.Num)
@@ -791,7 +792,7 @@ namespace Compiler
                                     }
                                     if (isInduction)
                                     {
-                                        //This var would be part of init expr
+                                        //This var would be a part of init expr
                                         induction.ChangeInit(top, lastOP);
                                     }
                                 }
@@ -1078,7 +1079,7 @@ namespace Compiler
                 right = new DAGNode(DAGType.Add, GetSN(), null);
                 node.Left = left;
                 node.Right = right;
-                //当前next的节点的运算符又下一个表达式决定
+                //当前next的节点的运算符由下一个表达式决定
                 var next = right;
 
                 Stack<Triple.Pair> s = new Stack<Triple.Pair>();
@@ -1087,7 +1088,7 @@ namespace Compiler
                     if (triple.Loc.Index == loop.BaseInductionVar[p.Offset].Loc.Index)
                     {
                         int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要加上步长
-                        if (res > 0)
+                        if (res < 0)
                         {
                             DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
                             {
@@ -2202,7 +2203,10 @@ namespace Compiler
             {
                 QuadrupleNode node = CodeSeg[block.End];
                 DAGNode left = GetNode(node.Arg1, Nodes, block), right = GetNode(node.Arg2, Nodes, block);
-                if (GetValue(left) == GetValue(right))
+
+                //表达式恒真恒假不进行优化，在Parse中实现 warning
+
+                if (false && GetValue(left) == GetValue(right))
                 {
                     switch (node.Type)
                     {
@@ -2227,7 +2231,7 @@ namespace Compiler
                 }
                 else
                 {
-                    if (left.CurrentValue.Type == DAGType.Num && right?.CurrentValue.Type == DAGType.Num)
+                    if (false && left.CurrentValue.Type == DAGType.Num && right?.CurrentValue.Type == DAGType.Num)
                     {
                         switch (node.Type)
                         {
@@ -2393,7 +2397,7 @@ namespace Compiler
                     Blocks.Add(block);
                     continue;
                 }
-                index++;
+                ++index;
                 while (index < CodeSeg.Count && NotJumpOrReturn(index) && !visited[index])
                 {
                     ++index;
@@ -2474,14 +2478,18 @@ namespace Compiler
                         {
                             block.Next.Add(node.JumpAddr);
                         }
+                        /////////////////////调用成环了？warning
                         if (!node.JumpAddr.Next.Contains(block))//对call形成的前驱后继特殊处理
                         {
                             node.JumpAddr.Next.Add(block);
                         }
+                        /*并不是由入口处进入，不认为是基本块的前驱
                         if (!node.JumpAddr.Prev.Contains(block))
                         {
                             node.JumpAddr.Prev.Add(block);
                         }
+                        */
+                        //////////////////////////
                     }
                 }
             }

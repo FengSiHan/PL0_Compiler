@@ -288,7 +288,7 @@ namespace Compiler
                     Add(new PNode(PCode.LSS));
                     break;
                 case QuadrupleType.JL:
-                    Add(new PNode(PCode.GRT));
+                    Add(new PNode(PCode.GEQ));
                     break;
                 case QuadrupleType.JLE:
                     Add(new PNode(PCode.GRT));

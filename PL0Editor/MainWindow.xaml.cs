@@ -390,7 +390,7 @@ namespace PL0Editor
                         Window.StopMI.IsEnabled = true;
                         Window.StatusContent.Text = "程序开始执行";
                     });
-                    VM.Run(Code);
+                    VM.Run(Code, 2);
                     Window.Invoke(() =>
                     {
                         Window.ExecuteMI.IsEnabled = true;
@@ -408,6 +408,7 @@ namespace PL0Editor
         {
             try
             {
+                ConsoleCtrl.Clear();
                 List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
                 if (list.Count > 0)
                 {
@@ -675,7 +676,7 @@ namespace PL0Editor
         {
             if (disp == null) disp = new DisplayWindow(this);
             ILGenerator generator = new ILGenerator();
-            generator.GenerateCode(CodeEditor.Text, 1);
+            generator.GenerateCode(CodeEditor.Text, 2);
             disp.Show(generator.GetCodeString());
         }
 
