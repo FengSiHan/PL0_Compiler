@@ -36,11 +36,13 @@ namespace Compiler
                 return null;
             }
             SkipControlList.Clear();
+            bool HasPeriod = false;
             try
             {
                 SkipControlList.Add(Token.PERIOD);
                 AstTree = SubProgram();
                 CheckExpectToken(Token.PERIOD);
+                HasPeriod = true;
             }
             catch (SyntaxErrorException e)
             {
@@ -63,7 +65,7 @@ namespace Compiler
             }
             try
             {
-                if (CurrentToken()?.TokenType != TokenType.PERIOD)
+                if (HasPeriod && CurrentToken()?.TokenType != TokenType.PERIOD)
                 {
                     ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
                 }
