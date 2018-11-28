@@ -28,35 +28,39 @@ namespace PL0Editor
         }
         public void Analyze(string Code)
         {
-            Temp.Clear();
-            Global.Clear();
-            foreach (var i in Envirment.Keys)
+            try
             {
-                Global.Reserve(i, EType.Keyword);
-            }
-            UpdateSymbols(parser.Parse(Code), null);
-            //Func<Envirment, Envirment, int> cmp = (i, j) =>
-            //{
-            //    if (i.Start.Equals(j.Start))
-            //    {
-            //        return i.End.CompareTo(j.End);
-            //    }
-            //    return i.Start.CompareTo(j.Start);
-            //};
-            ///Temp.Sort(new Comparison<Envirment>(cmp));
+                Temp.Clear();
+                Global.Clear();
+                foreach (var i in Envirment.Keys)
+                {
+                    Global.Reserve(i, EType.Keyword);
+                }
+                UpdateSymbols(parser.Parse(Code), null);
+                //Func<Envirment, Envirment, int> cmp = (i, j) =>
+                //{
+                //    if (i.Start.Equals(j.Start))
+                //    {
+                //        return i.End.CompareTo(j.End);
+                //    }
+                //    return i.Start.CompareTo(j.Start);
+                //};
+                ///Temp.Sort(new Comparison<Envirment>(cmp));
 
-            if (Temp.Count == 0)
-            {
-                Temp.Add(new Envirment(null));
+                if (Temp.Count == 0)
+                {
+                    Temp.Add(new Envirment(null));
+                }
+                foreach (var i in Envirment.Keys)
+                {
+                    Temp.Last().Reserve(i, EType.Keyword);
+                }
+                lock (Symbols)
+                {
+                    Symbols = Temp;
+                }
             }
-            foreach (var i in Envirment.Keys)
-            {
-                Temp.Last().Reserve(i, EType.Keyword);
-            }
-            lock (Symbols)
-            {
-                Symbols = Temp;
-            }
+            catch (Exception) { }
         }
         private void UpdateSymbols(AstNode Root, Envirment prev)
         {

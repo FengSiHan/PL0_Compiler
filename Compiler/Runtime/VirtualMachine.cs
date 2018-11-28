@@ -71,8 +71,8 @@ namespace Compiler
                     Push(Pop() + Pop());
                     break;
                 case PCode.CAL:
-                    EIP = cmd.Arg;
                     Push(EIP + 1);
+                    EIP = cmd.Arg;
                     return;
                 case PCode.DIV:
                     int tmp = Pop();
@@ -84,7 +84,7 @@ namespace Compiler
                 case PCode.EXP:
                     TempPool.Clear();
                     EIP = Pop();
-                    break;
+                    return;
                 case PCode.GEQ:
                     PushBoolean(Pop() <= Pop());
                     break;
@@ -146,6 +146,14 @@ namespace Compiler
                     break;
                 case PCode.RED:
                     string i;
+                    if (Write == null)
+                    {
+                        Console.WriteLine($"Please input a value for {VarSeg[cmd.Arg].Value}");
+                    }
+                    else
+                    {
+                        //Write($"Please input a value for {VarSeg[cmd.Arg].Value}");
+                    }
                     if (Read == null)
                     {
                         i = Console.ReadLine();
@@ -209,8 +217,8 @@ namespace Compiler
                         Write(Pop());
                     }
                     break;
-                case PCode.XOR:
-                    Push(Pop() ^ Pop());
+                case PCode.NOT:
+                    Push(Pop() ^ 1);
                     break;
             }
             ++EIP;

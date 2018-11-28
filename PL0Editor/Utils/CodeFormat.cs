@@ -135,7 +135,7 @@ namespace PL0Editor
                     {
                         Temp.Append(IndentString);
                     }
-                    Temp.Append($"call {Node.Left.Info}");
+                    Temp.Append($"call {Node.Info}");
                     break;
                 case ExprType.IfElse:
                     for (int i = 0; i < Indent; ++i)
@@ -151,10 +151,10 @@ namespace PL0Editor
                     else
                     {
                         TranslateExpr(Node.Left.Left.Left);
-                        Temp.Append($"{Node.Left.Left.Info}");
+                        Temp.Append($" {Node.Left.Left.Info} ");
                         TranslateExpr(Node.Left.Left.Right);
                     }
-                    Temp.Append('\n');
+                    Temp.Append(" then\n");
                     GenerateCode(Node.Left.Right, Node, Indent + 1);
                     Temp.Append('\n');
                     if (Node.Right != null)
@@ -165,7 +165,6 @@ namespace PL0Editor
                         }
                         Temp.Append("else\n");
                         GenerateCode(Node.Right, Node, Indent + 1);
-                        Temp.Append('\n');
                     }
                     break;
                 case ExprType.RepeatUntil:

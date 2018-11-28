@@ -61,7 +61,7 @@ namespace Compiler
                     case PCode.MUL:
                     case PCode.NEQ:
                     case PCode.SUB:
-                    case PCode.XOR:
+                    case PCode.NOT:
                     case PCode.WRT:
                         Console.WriteLine();
                         break;
@@ -116,7 +116,7 @@ namespace Compiler
                     case PCode.MUL:
                     case PCode.NEQ:
                     case PCode.SUB:
-                    case PCode.XOR:
+                    case PCode.NOT:
                     case PCode.WRT:
                         sb.Append("\n");
                         break;
@@ -283,8 +283,7 @@ namespace Compiler
                 Add(new PNode(PCode.MOD));
                 if (Node.Type == QuadrupleType.JO)
                 {
-                    Add(new PNode(PCode.LIT, 1, 1));
-                    Add(new PNode(PCode.XOR));
+                    Add(new PNode(PCode.NOT));
                 }
                 Add(new PNode(PCode.JPC, (int)Node.Result, 4));
                 return;
@@ -414,7 +413,7 @@ namespace Compiler
         LER,//<=
         GRT,//>
         GEQ,//>=
-        XOR //^
+        NOT //^
     }
     public class PNode
     {

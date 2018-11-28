@@ -18,16 +18,18 @@ namespace PL0Editor
         }
         private void Init(MainWindow parent)
         {
+
             FontFamily = new FontFamily("Consolas");
             Height = 400;
             Width = 600;
-            Left = Top = 800;
             Owner = parent;
+            Left = parent.Width - Width + 100;
+            Top = 200;
             Padding = new Thickness(0);
             this.WindowStyle = WindowStyle.None;
-            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+            WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
             Grid grid = new Grid();
-            grid.Margin = new Thickness(0);
+            grid.Margin = new Thickness(0, 20, 0, 0);
 
             RowDefinition row = new RowDefinition();
             RowDefinition row1 = new RowDefinition();
@@ -65,6 +67,7 @@ namespace PL0Editor
             AddChild(grid);
 
             button.Click += (i, j) => Hide();
+
         }
         public bool? Show(string text)
         {
