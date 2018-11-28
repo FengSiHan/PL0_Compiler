@@ -59,7 +59,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Tools\Debugger.cs" />
     <Compile Include="Intermediate Language\Optimize.cs" />
     <Compile Include="Utils\DList.cs" />
     <Compile Include="Utils\ErrorMsgList.cs" />
