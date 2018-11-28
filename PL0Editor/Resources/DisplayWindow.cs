@@ -16,18 +16,22 @@ namespace PL0Editor
         {
             Init(parent);
         }
+        public new void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            Hide();
+            e.Cancel = true;
+        }
         private void Init(MainWindow parent)
         {
-
             FontFamily = new FontFamily("Consolas");
             Height = 400;
             Width = 600;
             Owner = parent;
-            Left = parent.Width - Width + 100;
-            Top = 200;
+            //Left = parent.Width - Width + 100;
+            //Top = 200;
             Padding = new Thickness(0);
             this.WindowStyle = WindowStyle.None;
-            WindowStartupLocation = System.Windows.WindowStartupLocation.Manual;
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
             Grid grid = new Grid();
             grid.Margin = new Thickness(0, 20, 0, 0);
 

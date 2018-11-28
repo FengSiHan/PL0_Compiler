@@ -86,9 +86,10 @@ namespace Compiler
                     {
                         throw new Exception("Error happened during optimization");
                     }
-                    if (CodeNode.Type != QuadrupleType.Read
-                        && CodeNode.Type != QuadrupleType.Write
-                        && CodeNode.Type != QuadrupleType.Call
+                    if ((CodeNode.Type == QuadrupleType.Sub
+                        || CodeNode.Type == QuadrupleType.Add
+                        || CodeNode.Type == QuadrupleType.Mul
+                        || CodeNode.Type == QuadrupleType.Div)
                         && GetValue(left).Type == DAGType.Num
                         && GetValue(right).Type == DAGType.Num)//可能是间接的常量传播
                     {
@@ -413,6 +414,8 @@ namespace Compiler
                     }
                 }
             }
+
+            return;
             IterativeAvailableExpressionAnalysis();
 
             //公共子表达式的值指向一个新创建的变量，匿名
@@ -426,148 +429,175 @@ namespace Compiler
                         if (prevNode == nowNode)
                         {
                             CommonExpr = prevNode;
-                            break;
-                        }
-                    }
-                    if (CommonExpr != null)//存在全局公共子表达式
-                    {
-                        if (CommonExpr.Tags[0].Type != DAGType.Anonymous)//未被选为全局公共子表达式
-                        {
-                            DAGNode node = new DAGNode(DAGType.Anonymous, GetSN(), block)
+                            if (CommonExpr.Tags[0].Type != DAGType.Anonymous)//未被选为全局公共子表达式
                             {
-                                Offset = VarSeg.Count
-                            };
-                            node.CurrentValue = CommonExpr;
-
-                            List<DAGNode> deleteList = new List<DAGNode>();
-
-                            foreach (var i in CommonExpr.Tags)
-                            {
-                                if (i.Type == DAGType.Temp)
+                                DAGNode node = new DAGNode(DAGType.Anonymous, GetSN(), block)
                                 {
-                                    for (int j = 0; j < CommonExpr.Host.DAG.Count; ++j)
+                                    Offset = VarSeg.Count
+                                };
+                                node.CurrentValue = CommonExpr;
+
+                                List<DAGNode> deleteList = new List<DAGNode>();
+
+                                foreach (var i in CommonExpr.Tags)
+                                {
+                                    if (i.Type == DAGType.Temp)
                                     {
-                                        if (CommonExpr.Host.DAG[j] == i)
+                                        for (int j = 0; j < CommonExpr.Host.DAG.Count; ++j)
                                         {
-                                            CommonExpr.Host.DAG[j] = node;
+                                            if (CommonExpr.Host.DAG[j] == i)
+                                            {
+                                                CommonExpr.Host.DAG[j] = node;
+                                            }
+                                            else if (CommonExpr.Host.DAG[j].Type == DAGType.Assign && CommonExpr.Host.DAG[j].Right == i.CurrentValue)
+                                            {
+                                                CommonExpr.Host.DAG[j].Right = node;
+                                                CommonExpr.Host.DAG[j].CurrentValue = node;
+                                            }
                                         }
-                                        else if (CommonExpr.Host.DAG[j].Type == DAGType.Assign && CommonExpr.Host.DAG[j].Right == i)
+
+                                        foreach (var t in i.Tags)
                                         {
-                                            CommonExpr.Host.DAG[j].Right = node;
+                                            t.CurrentValue = node;
+                                        }
+                                        deleteList.Add(i);
+                                    }
+                                }
+
+                                foreach (var i in deleteList)
+                                {
+                                    CommonExpr.Tags.Remove(i);
+                                }
+                                deleteList.Clear();
+                                foreach (var i in nowNode.Tags)
+                                {
+                                    if (i.Type == DAGType.Temp)
+                                    {
+                                        for (int j = 0; j < block.DAG.Count; ++j)
+                                        {
+                                            if (block.DAG[j] == i)
+                                            {
+                                                block.DAG[j] = node;
+                                            }
+                                            else if (block.DAG[j].Type == DAGType.Assign && block.DAG[j].Right == i.CurrentValue)
+                                            {
+                                                block.DAG[j].Right = node;
+                                                block.DAG[j].Left.CurrentValue = node;
+                                            }
+                                        }
+                                        foreach (var t in i.Tags)
+                                        {
+                                            t.CurrentValue = node;
+                                        }
+                                        deleteList.Add(i);
+                                    }
+                                }
+                                //nowNode.Host.ExprSet.Remove(nowNode);
+                                foreach (var i in deleteList)
+                                {
+                                    nowNode.Tags.Remove(i);
+                                }
+                                VarSeg.Add(new QuadrupleNode(QuadrupleType.Var)
+                                {
+                                    Offset = node.Offset,
+                                    Value = $"#Anonymous_{VarSeg.Count}"
+                                });
+                                if (CommonExpr.Tags.Count != 0)
+                                {
+                                    CommonExpr.Tags.Add(CommonExpr.Tags[0]);
+                                    CommonExpr.Tags[0] = node;
+                                }
+                                else
+                                {
+                                    CommonExpr.Add(node);
+                                }
+                                if (nowNode.Tags.Count != 0)
+                                {
+                                    nowNode.Tags.Add(CommonExpr.Tags[0]);
+                                    nowNode.Tags[0] = node;
+                                }
+                                else
+                                {
+                                    nowNode.Add(node);
+                                }
+                                //c0可能调用链可能成环，那全局公共子表达式就拉闸
+                                //无法解决成环调用，可以进一步推导
+                                //暂时搁置
+                                //此处调用成环，是由call指令导致的，推导call指令与运算指令位置可得删除哪边的表达式
+                                if (block.Next.Contains(CommonExpr.Host) && CommonExpr.Host.Prev.Contains(block)) //说明block用call调用了CommonExpr.Host
+                                {
+                                    var DAG = block.DAG;
+                                    int addr = CommonExpr.Host.Start;
+                                    int Loc_call = 0, Loc_expr = 0;
+                                    foreach (var i in DAG)
+                                    {
+                                        if (i.Type == DAGType.Call && i.Value == addr)
+                                        {
+                                            Loc_call = i.SN;
+                                        }
+                                        else if (i == CommonExpr)
+                                        {
+                                            Loc_expr = i.SN;
                                         }
                                     }
-                                    deleteList.Add(i);
-                                }
-                            }
-
-                            foreach (var i in deleteList)
-                            {
-                                CommonExpr.Tags.Remove(i);
-                            }
-
-                            deleteList.Clear();
-                            foreach (var i in nowNode.Tags)
-                            {
-                                if (i.Type == DAGType.Temp)
-                                {
-                                    for (int j = 0; j < block.DAG.Count; ++j)
+                                    foreach (var i in block.ExprSet)
                                     {
-                                        if (block.DAG[j] == i)
+                                        if (i == CommonExpr)
                                         {
-                                            block.DAG[j] = node;
-                                        }
-                                        else if (block.DAG[j].Type == DAGType.Assign && block.DAG[j].Right == i)
-                                        {
-                                            block.DAG[j].Right = node;
+                                            Loc_expr = i.SN;
+                                            break;
                                         }
                                     }
-                                    deleteList.Add(i);
+                                    if (Loc_call < Loc_expr) //call 在表达式之前发生,删掉调用者中的表达式
+                                    {
+                                        block.DAG.Remove(node);
+                                    }
+                                    else
+                                    {
+                                        CommonExpr.Host.DAG.Remove(node);
+                                    }
                                 }
-                            }
-                            //nowNode.Host.ExprSet.Remove(nowNode);
-                            foreach (var i in deleteList)
-                            {
-                                nowNode.Tags.Remove(i);
-                            }
-                            VarSeg.Add(new QuadrupleNode(QuadrupleType.Var)
-                            {
-                                Offset = node.Offset,
-                                Value = $"#Anonymous_{VarSeg.Count}"
-                            });
-                            if (CommonExpr.Tags.Count != 0)
-                            {
-                                CommonExpr.Tags.Add(CommonExpr.Tags[0]);
-                                CommonExpr.Tags[0] = node;
+                                else if (CommonExpr.Host.Next.Contains(block) && block.Prev.Contains(CommonExpr.Host)) //说明CommonExpr.Host调用了block
+                                {
+                                    var DAG = CommonExpr.Host.DAG;
+                                    int addr = block.Start;
+                                    int Loc_call = 0, Loc_expr = 0;
+                                    foreach (var i in DAG)
+                                    {
+                                        if (i.Type == DAGType.Call && i.Value == addr)
+                                        {
+                                            Loc_call = i.SN;
+                                            break;
+                                        }
+                                    }
+                                    foreach (var i in CommonExpr.Host.ExprSet)
+                                    {
+                                        if (i == CommonExpr)
+                                        {
+                                            Loc_expr = i.SN;
+                                            break;
+                                        }
+                                    }
+                                    if (Loc_call < Loc_expr) //call 在表达式之前发生,删掉调用者中的表达式
+                                    {
+                                        CommonExpr.Host.DAG.Remove(node);
+                                    }
+                                    else
+                                    {
+                                        block.DAG.Remove(node);
+                                    }
+                                }
                             }
                             else
                             {
-                                CommonExpr.Add(node);
-                            }
-                            //c0可能调用链可能成环，那全局公共子表达式就拉闸
-                            //无法解决成环调用，可以进一步推导
-                            //暂时搁置
-                            //此处调用成环，是由call指令导致的，推导call指令与运算指令位置可得删除哪边的表达式
-                            if (block.Next.Contains(CommonExpr.Host) && CommonExpr.Host.Prev.Contains(block)) //说明block用call调用了CommonExpr.Host
-                            {
-                                var DAG = block.DAG;
-                                int addr = CommonExpr.Host.Start;
-                                int Loc_call = 0, Loc_expr = 0;
-                                foreach (var i in DAG)
+                                if (nowNode.Tags.Count != 0)
                                 {
-                                    if (i.Type == DAGType.Call && i.Value == addr)
-                                    {
-                                        Loc_call = i.SN;
-                                    }
-                                    else if (i == CommonExpr)
-                                    {
-                                        Loc_expr = i.SN;
-                                    }
-                                }
-                                foreach (var i in block.ExprSet)
-                                {
-                                    if (i == CommonExpr)
-                                    {
-                                        Loc_expr = i.SN;
-                                        break;
-                                    }
-                                }
-                                if (Loc_call < Loc_expr) //call 在表达式之前发生,删掉调用者中的表达式
-                                {
-                                    block.DAG.Remove(node);
+                                    nowNode.Tags.Add(CommonExpr.Tags[0]);
+                                    nowNode.Tags[0] = CommonExpr.Tags[0];
                                 }
                                 else
                                 {
-                                    CommonExpr.Host.DAG.Remove(node);
-                                }
-                            }
-                            else if (CommonExpr.Host.Next.Contains(block) && block.Prev.Contains(CommonExpr.Host)) //说明CommonExpr.Host调用了block
-                            {
-                                var DAG = CommonExpr.Host.DAG;
-                                int addr = block.Start;
-                                int Loc_call = 0, Loc_expr = 0;
-                                foreach (var i in DAG)
-                                {
-                                    if (i.Type == DAGType.Call && i.Value == addr)
-                                    {
-                                        Loc_call = i.SN;
-                                        break;
-                                    }
-                                }
-                                foreach (var i in CommonExpr.Host.ExprSet)
-                                {
-                                    if (i == CommonExpr)
-                                    {
-                                        Loc_expr = i.SN;
-                                        break;
-                                    }
-                                }
-                                if (Loc_call < Loc_expr) //call 在表达式之前发生,删掉调用者中的表达式
-                                {
-                                    CommonExpr.Host.DAG.Remove(node);
-                                }
-                                else
-                                {
-                                    block.DAG.Remove(node);
+                                    nowNode.Add(CommonExpr.Tags[0]);
                                 }
                             }
                         }
@@ -1087,13 +1117,13 @@ namespace Compiler
                 {
                     if (triple.Loc.Index == loop.BaseInductionVar[p.Offset].Loc.Index)
                     {
-                        int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要加上步长
+                        int res = triple.Addr - loop.BaseInductionVar[p.Offset].Addr;//i在k之后创建，则k要减去步长
                         if (res < 0)
                         {
                             DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
                             {
                                 Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
-                                Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                                Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = -loop.BaseInductionVar[p.Offset].Incr }
                             };
                             return _left;
                         }
@@ -1111,7 +1141,7 @@ namespace Compiler
                         DAGNode _left = new DAGNode(DAGType.Add, GetSN(), triple.Loc)
                         {
                             Left = new DAGNode(DAGType.Var, GetSN(), triple.Loc) { Offset = p.Offset },
-                            Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = loop.BaseInductionVar[p.Offset].Incr }
+                            Right = new DAGNode(DAGType.Num, GetSN(), triple.Loc) { Value = -loop.BaseInductionVar[p.Offset].Incr }
                         };
                         return _left;
                     }
@@ -1664,6 +1694,7 @@ namespace Compiler
                         var list = node.list;
                         foreach (var v in list)
                         {
+                            if (!(v is QuadrupleNode)) continue;
                             QuadrupleNode Var = v as QuadrupleNode;
                             DAGNode tmp = GetNode(Var, block.DAG, block);
                             if (block.InputVar.Contains(tmp) == false/* && tmp.CurrentValue == tmp*/)
@@ -1720,13 +1751,12 @@ namespace Compiler
         {
             foreach (var block in Blocks)
             {
-                List<DAGNode> deleteList = null;
+                List<DAGNode> deleteList = new List<DAGNode>();
                 foreach (var node in block.DAG)
                 {
                     if (node.Type == DAGType.Assign)
                     {
                         int offset = node.Left.Offset, SN = node.SN;
-                        deleteList = new List<DAGNode>();
                         foreach (var i in block.ExprSet)
                         {
                             if (i.Left.Offset == offset || i.Right.Offset == offset)
@@ -1742,10 +1772,7 @@ namespace Compiler
                         }
                     }
                 }
-                if (deleteList != null)
-                {
-                    block.AvailableExpr = block.ExprSet.Except(deleteList);
-                }
+                block.AvailableExpr = block.ExprSet.Except(deleteList);
             }
             bool changed = true;
             while (changed)
@@ -2165,7 +2192,7 @@ namespace Compiler
             Queue<DAGNode> ActiveExpr = new Queue<DAGNode>();
             foreach (var i in Nodes.ToList())
             {
-                if (i.Type == DAGType.Var)
+                if (i.Type == DAGType.Var || i.Type == DAGType.Anonymous)
                 {
                     var value = GetValue(i);
                     if (IsExpressionNode(value))
@@ -2178,6 +2205,14 @@ namespace Compiler
                     if (i.Right.Type == DAGType.Temp)
                     {
                         i.Right.Active = true;
+                        var value = GetValue(i.Right);
+                        if (IsExpressionNode(value))
+                        {
+                            ActiveExpr.Enqueue(value);
+                        }
+                    }
+                    else if (i.Right.Type == DAGType.Anonymous)
+                    {
                         var value = GetValue(i.Right);
                         if (IsExpressionNode(value))
                         {
@@ -2483,13 +2518,12 @@ namespace Compiler
                         {
                             node.JumpAddr.Next.Add(block);
                         }
-                        /*并不是由入口处进入，不认为是基本块的前驱
-                        if (!node.JumpAddr.Prev.Contains(block))
-                        {
-                            node.JumpAddr.Prev.Add(block);
-                        }
-                        */
-                        //////////////////////////
+                        ////并不是由入口处进入，不认为是基本块的前驱
+                        //if (!node.JumpAddr.Prev.Contains(block))
+                        //{
+                        //    node.JumpAddr.Prev.Add(block);
+                        //}
+                        ////////////////////////////
                     }
                 }
             }
@@ -2575,6 +2609,10 @@ namespace Compiler
             else if (node.Type == DAGType.Num)
             {
                 return node;
+            }
+            else if (node.Type == DAGType.Anonymous)
+            {
+                return node.CurrentValue;
             }
             else//为表达式
             {
@@ -2672,6 +2710,10 @@ namespace Compiler
                     if (k.Type == DAGType.Temp)
                     {
                         return (int)k.Value;
+                    }
+                    else if (k.Type == DAGType.Anonymous)
+                    {
+                        return VarSeg[n.Offset];
                     }
                 }
                 if (temp == -1)
