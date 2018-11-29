@@ -334,6 +334,7 @@ namespace Compiler
         Var,
         Num,
         Proc,
-        Assign
+        Assign,
+        Opr
     }
 }

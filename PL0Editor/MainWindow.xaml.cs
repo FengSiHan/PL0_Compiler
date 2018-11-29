@@ -16,7 +16,7 @@ using System.Windows.Threading;
 using System.Threading;
 using System.Text;
 using System.Windows.Controls;
-
+#pragma warning disable CS0618
 namespace PL0Editor
 {
     /// <summary>

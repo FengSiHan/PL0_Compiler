@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+#pragma warning disable CS0162
 namespace Compiler
 {
     /// <summary>

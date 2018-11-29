@@ -48,19 +48,9 @@ namespace Compiler
                 Console.Write(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
                 switch (i.INS)
                 {
-                    case PCode.ADD:
-                    case PCode.DIV:
-                    case PCode.EQL:
                     case PCode.EXP:
-                    case PCode.GEQ:
-                    case PCode.GRT:
                     case PCode.HALT:
-                    case PCode.LER:
-                    case PCode.LSS:
                     case PCode.MOD:
-                    case PCode.MUL:
-                    case PCode.NEQ:
-                    case PCode.SUB:
                     case PCode.NOT:
                     case PCode.WRT:
                         Console.WriteLine();
@@ -103,38 +93,34 @@ namespace Compiler
                 sb.Append(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
                 switch (i.INS)
                 {
-                    case PCode.ADD:
-                    case PCode.DIV:
-                    case PCode.EQL:
                     case PCode.EXP:
-                    case PCode.GEQ:
-                    case PCode.GRT:
                     case PCode.HALT:
-                    case PCode.LER:
-                    case PCode.LSS:
                     case PCode.MOD:
-                    case PCode.MUL:
-                    case PCode.NEQ:
-                    case PCode.SUB:
                     case PCode.NOT:
                     case PCode.WRT:
                         sb.Append("\n");
                         break;
-                        /*
-                    case PCode.LOD:
-                        sb.Append($"{i.Level}, {i.Offset}\n");
-                        break;
-                    case PCode.STO:
-                        sb.Append($"{i.Level}, {i.Offset}\n");
-                        break;*/
+                    /*
+                case PCode.LOD:
+                    sb.Append($"{i.Level}, {i.Offset}\n");
+                    break;
+                case PCode.STO:
+                    sb.Append($"{i.Level}, {i.Offset}\n");
+                    break;*/
                     default:
                         switch (i.DataType)
                         {
                             case 1:
                             case 4:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.CAL)
                                 {
                                     sb.Append($"{i.Level}, {i.Offset}\n");
+                                }
+                                else if (i.INS == PCode.LIT)
+                                {
+                                    sb.Append("0, ");
+                                    sb.Append(i.Arg);
+                                    sb.Append('\n');
                                 }
                                 else
                                 {
@@ -146,7 +132,7 @@ namespace Compiler
                                 sb.Append($"t{i.Arg}\n");
                                 break;
                             case 3:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.CAL)
                                 {
                                     sb.Append($"{i.Level}, {i.Offset}\n");
                                 }
@@ -155,6 +141,9 @@ namespace Compiler
                                     sb.Append(VarSeg[i.Arg].Value);
                                     sb.Append('\n');
                                 }
+                                break;
+                            case 5:
+                                sb.Append($"0, {i.Arg}");
                                 break;
                         }
                         break;
@@ -292,22 +281,22 @@ namespace Compiler
             switch (Node.Type)//根据条件选择相反的指令，因为是if False跳转
             {
                 case QuadrupleType.JE:
-                    Add(new PNode(PCode.NEQ));
+                    Add(new PNode(PCode.OPR, 9, 5));
                     break;
                 case QuadrupleType.JG:
-                    Add(new PNode(PCode.LER));
+                    Add(new PNode(PCode.OPR, 13, 5));
                     break;
                 case QuadrupleType.JGE:
-                    Add(new PNode(PCode.LSS));
+                    Add(new PNode(PCode.OPR, 10, 5));
                     break;
                 case QuadrupleType.JL:
-                    Add(new PNode(PCode.GEQ));
+                    Add(new PNode(PCode.OPR, 11, 5));
                     break;
                 case QuadrupleType.JLE:
-                    Add(new PNode(PCode.GRT));
+                    Add(new PNode(PCode.OPR, 12, 5));
                     break;
                 case QuadrupleType.JNE:
-                    Add(new PNode(PCode.EQL));
+                    Add(new PNode(PCode.OPR, 8, 5));
                     break;
             }
             Add(new PNode(PCode.JPC, (int)Node.Result, 4));
@@ -319,16 +308,16 @@ namespace Compiler
             switch (Node.Type)
             {
                 case QuadrupleType.Add:
-                    Add(new PNode(PCode.ADD));
+                    Add(new PNode(PCode.OPR, 2, 5));
                     break;
                 case QuadrupleType.Sub:
-                    Add(new PNode(PCode.SUB));
+                    Add(new PNode(PCode.OPR, 3, 5));
                     break;
                 case QuadrupleType.Mul:
-                    Add(new PNode(PCode.MUL));
+                    Add(new PNode(PCode.OPR, 4, 5));
                     break;
                 case QuadrupleType.Div:
-                    Add(new PNode(PCode.DIV));
+                    Add(new PNode(PCode.OPR, 5, 5));
                     break;
             }
             Add(new PNode(PCode.STO, (int)Node.Result, 2));
@@ -402,18 +391,9 @@ namespace Compiler
         WRT,
         HALT,
         EXP,
-        SUB,
-        ADD,
-        MUL,
-        DIV,
         MOD,
-        EQL,//=
-        NEQ,//<>
-        LSS,//<
-        LER,//<=
-        GRT,//>
-        GEQ,//>=
-        NOT //^
+        NOT, //^
+        OPR
     }
     public class PNode
     {
@@ -428,7 +408,7 @@ namespace Compiler
         public int Level;
 
         /// <summary>
-        /// Type: 1:立即数，2:临时变量，3:变量，4:地址
+        /// Type: 1:立即数，2:临时变量，3:变量，4:地址, 5:类型
         /// </summary>
         /// <param name="ins"></param>
         /// <param name="arg"></param>
