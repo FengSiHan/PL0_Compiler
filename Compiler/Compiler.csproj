@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="Intermediate Language\Optimize.cs" />
     <Compile Include="Utils\DList.cs" />
+    <Compile Include="Utils\Enumerator.cs" />
     <Compile Include="Utils\ErrorMsgList.cs" />
     <Compile Include="Intermediate Language\ILGenerator.cs" />
     <Compile Include="Intermediate Language\Lexer.cs" />

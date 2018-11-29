@@ -28,7 +28,7 @@ namespace Compiler
         public AstNode Parse(string Text)
         {
             var lexer = new Lexer(Text);
-            tokens = lexer.Scan().GetEnumerator();
+            tokens = new Enumerator<Token>(lexer.Scan().GetEnumerator());
             ErrorMsg = lexer.ErrorMsg;
             if (!tokens.MoveNext())
             {
@@ -221,9 +221,10 @@ namespace Compiler
             SkipControlList.Add(Token.SEMICOLON);
             try
             {
+
                 if (!tokens.MoveNext() || CurrentToken().TokenType != TokenType.ID)
                 {
-                    throw new SyntaxErrorException("Missing const definition", position);
+                    throw new SyntaxErrorException("Please complete const declaration", position);
                 }
                 while (CurrentToken()?.TokenType != TokenType.SEMICOLON)
                 {
@@ -268,7 +269,7 @@ namespace Compiler
                         Definition.Add(node);
                         if (CurrentToken().TokenType != TokenType.NUM)
                         {
-                            ErrorMsg.Add($"Unexpected token '{CurrentToken().Content}', Only number can be assigned to const ID", next.Location);
+                            ErrorMsg.Add($"Unexpected token '{CurrentToken().Content}', Only number can be assigned to const identifier", next.Location);
 
                             if (!tokens.MoveNext())
                             {
@@ -758,11 +759,11 @@ namespace Compiler
                         //赋值语句
                         SkipControlList.Add(Token.SEMICOLON);
                         if (CurrentToken() == Token.UNTIL || CurrentToken() == Token.THEN
-                            || CurrentToken() == Token.PROC || CurrentToken() == Token.ELSE
-                            || CurrentToken() == Token.END || CurrentToken() == Token.CONST
-                            || CurrentToken() == Token.VAR || CurrentToken() == Token.DO)
+                            || CurrentToken() == Token.ELSE|| CurrentToken() == Token.DO
+                            || (string)CurrentToken()?.Content == "odd" || Keys.Contains((string)CurrentToken().Content))
                         {
-                            throw new SyntaxErrorException($"Unexcepted token '{CurrentToken().Content}' ,Statement can't start with '{CurrentToken().Content}', Maybe there is a surplus ';' at the end of last statement", CurrentToken().Location);
+                            return null;
+                            //throw new SyntaxErrorException($"Unexcepted token '{CurrentToken().Content}' ,Statement can't start with '{CurrentToken().Content}', Maybe there is a surplus ';' at the end of last statement", CurrentToken().Location);
                         }
                         AstNode node_assign = new AstNode(ExprType.Assign, CurrentToken().Location)
                         {
@@ -1242,18 +1243,15 @@ namespace Compiler
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Token CurrentToken()
         {
-            try
-            {
-                return tokens.Current;
-            }
-            catch
-            {
-                return null;
-            }
+            return tokens.Current();
         }
 
         private void SkipErrorTokens()
         {
+            if (CurrentToken() != null && (SkipControlList.IndexOf(CurrentToken()) == -1))
+            {
+                tokens.MoveNext();
+            }
             while (CurrentToken() != null && (SkipControlList.IndexOf(CurrentToken()) == -1
                 && (!(CurrentToken().Content is string) || !Keys.Contains((string)CurrentToken().Content))))
             {
@@ -1264,7 +1262,7 @@ namespace Compiler
             }
         }
 
-        private IEnumerator<Token> tokens;
+        private Enumerator<Token> tokens;
         public ErrorMsgList ErrorMsg;
         private HashSet<string> Keys;
         private List<Token> SkipControlList;
