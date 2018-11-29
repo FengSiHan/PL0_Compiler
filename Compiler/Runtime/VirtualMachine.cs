@@ -67,30 +67,56 @@ namespace Compiler
         {
             switch (cmd.INS)
             {
-                case PCode.ADD:
-                    Push(Pop() + Pop());
+                case PCode.OPR:
+                    switch (cmd.Arg)
+                    {
+                        case 1:
+                            Push(-Pop());
+                            break;
+                        case 2:
+                            Push(Pop() + Pop());
+                            break;
+                        case 3:
+                            int tmp1 = Pop();
+                            Push(Pop() - tmp1);
+                            break;
+                        case 4:
+                            break;
+                        case 5:
+                            tmp1 = Pop();
+                            Push(Pop() / tmp1);
+                            break;
+                        case 6:
+                            Push(Pop() & 1);
+                            break;
+                        case 8:
+                            PushBoolean(Pop() == Pop());
+                            break;
+                        case 9:
+                            PushBoolean(Pop() != Pop());
+                            break;
+                        case 10:
+                            PushBoolean(Pop() > Pop());
+                            break;
+                        case 11:
+                            PushBoolean(Pop() <= Pop());
+                            break;
+                        case 12:
+                            PushBoolean(Pop() < Pop());
+                            break;
+                        case 13:
+                            PushBoolean(Pop() >= Pop());
+                            break;
+                    }
                     break;
                 case PCode.CAL:
                     Push(EIP + 1);
                     EIP = cmd.Arg;
                     return;
-                case PCode.DIV:
-                    int tmp = Pop();
-                    Push(Pop() / tmp);
-                    break;
-                case PCode.EQL:
-                    PushBoolean(Pop() == Pop());
-                    break;
                 case PCode.EXP:
                     TempPool.Clear();
                     EIP = Pop();
                     return;
-                case PCode.GEQ:
-                    PushBoolean(Pop() <= Pop());
-                    break;
-                case PCode.GRT:
-                    PushBoolean(Pop() < Pop());
-                    break;
                 case PCode.HALT:
                     return;
                 case PCode.INT:
@@ -111,9 +137,6 @@ namespace Compiler
                     }
                     TempPool.Clear();
                     return;
-                case PCode.LER:
-                    PushBoolean(Pop() >= Pop());
-                    break;
                 case PCode.LIT:
                     Push(cmd.Arg);
                     break;
@@ -131,18 +154,9 @@ namespace Compiler
                         Push(TempPool[cmd.Arg]);
                     }
                     break;
-                case PCode.LSS:
-                    PushBoolean(Pop() > Pop());
-                    break;
                 case PCode.MOD:
-                    tmp = Pop();
+                    int tmp = Pop();
                     Push(Pop() % tmp);
-                    break;
-                case PCode.MUL:
-                    Push(Pop() * Pop());
-                    break;
-                case PCode.NEQ:
-                    PushBoolean(Pop() != Pop());
                     break;
                 case PCode.RED:
                     string i;
@@ -202,10 +216,6 @@ namespace Compiler
                             TempPool.Add(cmd.Arg, Pop());
                         }
                     }
-                    break;
-                case PCode.SUB:
-                    tmp = Pop();
-                    Push(Pop() - tmp);
                     break;
                 case PCode.WRT:
                     if (Write == null)
