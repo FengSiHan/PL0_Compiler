@@ -390,7 +390,7 @@ namespace PL0Editor
                         Window.StopMI.IsEnabled = true;
                         Window.StatusContent.Text = "程序开始执行";
                     });
-                    VM.Run(Code, 2);
+                    VM.Run(Code, 0);
                     Window.Invoke(() =>
                     {
                         Window.ExecuteMI.IsEnabled = true;

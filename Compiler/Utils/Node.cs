@@ -70,13 +70,14 @@ namespace Compiler
             CurrentValue = null;
             Result = null;//表示未初始化
         }
-        public QuadrupleNode(QuadrupleNode old)
+        public QuadrupleNode(QuadrupleNode old, int level)
         {
             Type = old.Type;
             Arg1 = old.Arg1;
             Arg2 = old.Arg2;
+            Value = old.Value;
             Offset = old.Offset;
-            Level = old.Level;
+            Level = level - old.Level;
             AddressOffset = old.AddressOffset;
         }
     }

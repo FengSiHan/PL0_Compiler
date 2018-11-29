@@ -160,13 +160,13 @@ namespace Compiler
                     break;
                 case PCode.RED:
                     string i;
-                    if (Write == null)
+                    if (WriteString == null)
                     {
                         Console.WriteLine($"Please input a value for {VarSeg[cmd.Arg].Value}");
                     }
                     else
                     {
-                        //Write($"Please input a value for {VarSeg[cmd.Arg].Value}");
+                        WriteString($"Please input a value for {VarSeg[cmd.Arg].Value}");
                     }
                     if (Read == null)
                     {

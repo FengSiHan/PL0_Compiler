@@ -79,6 +79,7 @@ namespace Compiler
                 }
             }
         }
+
         public string GetPCodeString()
         {
             if (Programs.Count == 0)
@@ -112,11 +113,7 @@ namespace Compiler
                         {
                             case 1:
                             case 4:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.CAL)
-                                {
-                                    sb.Append($"{i.Level}, {i.Offset}\n");
-                                }
-                                else if (i.INS == PCode.LIT)
+                                if (i.INS == PCode.LIT || i.INS == PCode.CAL)
                                 {
                                     sb.Append("0, ");
                                     sb.Append(i.Arg);
@@ -132,7 +129,7 @@ namespace Compiler
                                 sb.Append($"t{i.Arg}\n");
                                 break;
                             case 3:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.CAL)
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
                                 {
                                     sb.Append($"{i.Level}, {i.Offset}\n");
                                 }
@@ -151,6 +148,7 @@ namespace Compiler
             }
             return sb.ToString();
         }
+
         public int NumOfError { get; private set; }
 
         private void GetPCode()
@@ -213,7 +211,7 @@ namespace Compiler
                     }
                     else
                     {
-                        Add(new PNode(PCode.LOD, ((QuadrupleNode)(Node.Arg2)).Offset, 3));
+                        Add(new PNode(PCode.LOD, ((QuadrupleNode)(Node.Arg2)).Offset, 3) { Offset = ((QuadrupleNode)(Node.Arg2)).AddressOffset, Level = ((QuadrupleNode)(Node.Arg2)).Level });
                     }
                     var qnode = (QuadrupleNode)(Node.Arg1);
                     Add(new PNode(PCode.STO, qnode.Offset, 3) { Offset = qnode.AddressOffset, Level = qnode.Level });
@@ -266,7 +264,7 @@ namespace Compiler
                 else
                 {
                     var t = Node.Arg1 as QuadrupleNode;
-                    Add(new PNode(PCode.LOD, t.Offset, 3));
+                    Add(new PNode(PCode.LOD, t.Offset, 3) { Offset = t.AddressOffset, Level = t.Level });
                 }
                 Add(new PNode(PCode.LIT, 2, 1));
                 Add(new PNode(PCode.MOD));
@@ -337,7 +335,7 @@ namespace Compiler
             else
             {
                 var t = Node.Arg1 as QuadrupleNode;
-                Add(new PNode(PCode.LOD, t.Offset, 3));
+                Add(new PNode(PCode.LOD, t.Offset, 3) { Offset = t.AddressOffset, Level = t.Level });
             }
             if (Node.Arg2 is int)
             {
@@ -351,7 +349,7 @@ namespace Compiler
             else
             {
                 var t = Node.Arg2 as QuadrupleNode;
-                Add(new PNode(PCode.LOD, t.Offset, 3));
+                Add(new PNode(PCode.LOD, t.Offset, 3) { Offset = t.AddressOffset, Level = t.Level });
             }
         }
 

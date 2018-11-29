@@ -2604,6 +2604,10 @@ namespace Compiler
                 {
                     return GetValue(node.CurrentValue);
                 }
+                else if (node.CurrentValue.Type == DAGType.Var)
+                {
+                    return node;
+                }
                 return node.CurrentValue;
             }
             else if (node.Type == DAGType.Num)

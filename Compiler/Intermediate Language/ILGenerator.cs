@@ -209,7 +209,7 @@ namespace Compiler
             if (!Done)
             {
                 sb.Append("Please generate intermediate code first\n");
-                return sb.ToString() ;
+                return sb.ToString();
             }
             if (NumOfError != 0)
             {
@@ -412,7 +412,7 @@ namespace Compiler
             FreeDataIndex = 0;
         }
 
-        private Object GetArg(AstNode node)
+        private Object GetArg(AstNode node, int level)
         {
             if (node.Type == ExprType.NUM)
             {
@@ -420,7 +420,7 @@ namespace Compiler
             }
             else if (node.Type == ExprType.Var)
             {
-                return VarSeg[node.Offset];
+                return new QuadrupleNode(VarSeg[node.Offset], level);
             }
             else if (node.Type == ExprType.Const)
             {
@@ -529,9 +529,9 @@ namespace Compiler
                     }
                     break;
                 case ExprType.Assign:
-                    QuadrupleNode assign = new QuadrupleNode(QuadrupleType.Assign, VarSeg[now.Left.Offset])
+                    QuadrupleNode assign = new QuadrupleNode(QuadrupleType.Assign, new QuadrupleNode(VarSeg[now.Left.Offset], Level))
                     {
-                        Arg2 = GetArg(now.Right)
+                        Arg2 = GetArg(now.Right, Level)
                     };
                     if (assign.Arg2 == null)
                     {
@@ -549,7 +549,7 @@ namespace Compiler
                 case ExprType.IfElse:
                     QuadrupleNode node = new QuadrupleNode(GetOppositeJumpInstruction(now.Left.Left.Info))
                     {
-                        Arg1 = GetArg(now.Left.Left.Left)
+                        Arg1 = GetArg(now.Left.Left.Left, Level)
                     };
                     if (node.Arg1 == null)
                     {
@@ -558,7 +558,7 @@ namespace Compiler
                     }
                     if (node.Type != QuadrupleType.JO && node.Type != QuadrupleType.JNO)
                     {
-                        node.Arg2 = GetArg(now.Left.Left.Right);
+                        node.Arg2 = GetArg(now.Left.Left.Right, Level);
                         if (node.Arg2 == null)
                         {
                             GetQuadruples(now.Left.Left.Right, Level);
@@ -592,7 +592,7 @@ namespace Compiler
                         Result = CodeSeg.Count//当前位置
                     };
                     GetQuadruples(now.Right, Level);
-                    node.Arg1 = GetArg(now.Left.Left);
+                    node.Arg1 = GetArg(now.Left.Left, Level);
                     if (node.Arg1 == null)
                     {
                         GetQuadruples(now.Left.Left, Level);
@@ -601,7 +601,7 @@ namespace Compiler
 
                     if (node.Type != QuadrupleType.JNO && node.Type != QuadrupleType.JO)
                     {
-                        node.Arg2 = GetArg(now.Left.Right);
+                        node.Arg2 = GetArg(now.Left.Right, Level);
                         if (node.Arg2 == null)
                         {
                             GetQuadruples(now.Left.Right, Level);
@@ -615,7 +615,7 @@ namespace Compiler
                     object op = now.Left.Info;
                     node = new QuadrupleNode(GetOppositeJumpInstruction(op))
                     {
-                        Arg1 = GetArg(now.Left.Left)
+                        Arg1 = GetArg(now.Left.Left, Level)
                     };
                     if (node.Arg1 == null)
                     {
@@ -624,7 +624,7 @@ namespace Compiler
                     }
                     if (node.Type != QuadrupleType.JNO && node.Type != QuadrupleType.JO)
                     {
-                        node.Arg2 = GetArg(now.Left.Right);
+                        node.Arg2 = GetArg(now.Left.Right, Level);
                         if (node.Arg2 == null)
                         {
                             GetQuadruples(now.Left.Right, Level);
@@ -641,7 +641,7 @@ namespace Compiler
                     {
                         Result = location
                     };
-                    back.Arg1 = GetArg(now.Left.Left);
+                    back.Arg1 = GetArg(now.Left.Left, Level);
                     if (back.Arg1 == null)
                     {
                         GetQuadruples(now.Left.Left, Level);
@@ -649,7 +649,7 @@ namespace Compiler
                     }
                     if (back.Type != QuadrupleType.JNO && back.Type != QuadrupleType.JO)
                     {
-                        back.Arg2 = GetArg(now.Left.Right);
+                        back.Arg2 = GetArg(now.Left.Right, Level);
                         if (back.Arg2 == null)
                         {
                             GetQuadruples(now.Left.Right, Level);
@@ -664,7 +664,7 @@ namespace Compiler
                 case ExprType.Expr:
                     var node1 = new QuadrupleNode(GetOperator(now.Info))
                     {
-                        Arg2 = GetArg(now.Right)
+                        Arg2 = GetArg(now.Right, Level)
                     };
                     if (node1.Arg2 == null)
                     {
@@ -676,7 +676,7 @@ namespace Compiler
                         node = new QuadrupleNode(QuadrupleType.Sub)
                         {
                             Arg1 = "#0",
-                            Arg2 = GetArg(now.Left.Right)
+                            Arg2 = GetArg(now.Left.Right, Level)
                         };
                         if (node.Arg2 == null)
                         {
@@ -689,7 +689,7 @@ namespace Compiler
                     }
                     else
                     {
-                        node1.Arg1 = GetArg(now.Left);
+                        node1.Arg1 = GetArg(now.Left, Level);
                         if (node1.Arg1 == null)
                         {
                             GetQuadruples(now.Left, Level);
@@ -703,14 +703,14 @@ namespace Compiler
                 case ExprType.Term:
                     node = new QuadrupleNode(GetOperator(now.Info))
                     {
-                        Arg2 = GetArg(now.Right)
+                        Arg2 = GetArg(now.Right, Level)
                     };
                     if (node.Arg2 == null)
                     {
                         GetQuadruples(now.Right, Level);
                         node.Arg2 = ResultIndex;
                     }
-                    node.Arg1 = GetArg(now.Left);
+                    node.Arg1 = GetArg(now.Left, Level);
                     if (node.Arg1 == null)
                     {
                         GetQuadruples(now.Left, Level);
@@ -724,8 +724,7 @@ namespace Compiler
                     ArrayList param = new ArrayList();
                     foreach (var i in (List<AstNode>)now.Info)
                     {
-                        var n = new QuadrupleNode(VarSeg[i.Offset]);
-                        n.Level = Level - VarSeg[i.Offset].Level;
+                        var n = new QuadrupleNode(VarSeg[i.Offset], Level);
                         param.Add(n);
                     }
                     CodeSeg.Add(new QuadrupleNode(QuadrupleType.Read, param));
@@ -740,8 +739,7 @@ namespace Compiler
                         }
                         else if (i.Type == ExprType.Var)
                         {
-                            var n = new QuadrupleNode(VarSeg[i.Offset]);
-                            n.Level = Level - VarSeg[i.Offset].Level;
+                            var n = new QuadrupleNode(VarSeg[i.Offset], Level);
                             param.Add(n);
                         }
                         else if (i.Type == ExprType.Const)
