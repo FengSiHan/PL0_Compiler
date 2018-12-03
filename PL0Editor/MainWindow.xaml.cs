@@ -31,9 +31,9 @@ namespace PL0Editor
             {
                 Init();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                MessageBox.Show($"编辑器初始化失败: {e.Message}", "错误");
+                MessageBox.Show($"编辑器初始化失败: {ex.Message}", "错误");
                 Application.Current.Shutdown();
             }
             try
@@ -87,7 +87,7 @@ namespace PL0Editor
                                 }
                             }
                         }
-                        catch
+                        catch (Exception)
                         {
 
                         }
@@ -95,9 +95,9 @@ namespace PL0Editor
                 };
                 ResetTimer.Start();
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                MessageBox.Show($"后台初始化失败 {e.Message}", "错误");
+                MessageBox.Show($"后台初始化失败 {ex.Message}", "错误");
                 Application.Current.Shutdown();
             }
         }
@@ -229,7 +229,7 @@ namespace PL0Editor
                         {
                             completionWindow.Show();
                         }
-                        catch
+                        catch (Exception)
                         {
                             completionWindow.Close();
                         }
@@ -249,7 +249,7 @@ namespace PL0Editor
                     completionWindow?.Close();
                 }
             }
-            catch
+            catch (Exception)
             {
                 StatusContent.Text = "代码提示模块错误......";
             }
@@ -276,7 +276,7 @@ namespace PL0Editor
                     }
                 }
             }
-            catch
+            catch (Exception)
             {
 
             }
@@ -373,7 +373,7 @@ namespace PL0Editor
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void AnalyzeCodeError()
@@ -384,7 +384,7 @@ namespace PL0Editor
                 parser.Parse(new string(code.ToCharArray()));
                 ErrorList.ItemsSource = parser.ErrorMsg.Errors;
             }
-            catch { }
+            catch (Exception) { }
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
         }
@@ -396,7 +396,7 @@ namespace PL0Editor
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private sealed class VMStartup
@@ -432,7 +432,7 @@ namespace PL0Editor
                         Window.StatusContent.Text = "程序执行完毕";
                     });
                 }
-                catch
+                catch (Exception)
                 { }
             }
         }
@@ -455,7 +455,7 @@ namespace PL0Editor
                 ConsoleThread = new Thread(v.Execute);
                 ConsoleThread.Start();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void StopExecuteCode(object sender, RoutedEventArgs e)
@@ -467,7 +467,7 @@ namespace PL0Editor
                 StatusContent.Text = "程序终止执行";
                 ConsoleThread?.Abort();
             }
-            catch
+            catch (Exception)
             {
 
             }
@@ -552,7 +552,7 @@ namespace PL0Editor
                 }
                 */
             }
-            catch { }
+            catch (Exception) { }
 
         }
 
@@ -572,7 +572,7 @@ namespace PL0Editor
                     return str.Substring(0, str.Length - 2);
                 });
             }
-            catch
+            catch (Exception)
             {
                 return "";
             }
@@ -592,7 +592,7 @@ namespace PL0Editor
                     ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
                 });
             }
-            catch
+            catch (Exception)
             {
             }
         }
@@ -611,7 +611,7 @@ namespace PL0Editor
                     ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
                 });
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void ExecuteExternally(object sender, RoutedEventArgs e)
@@ -713,7 +713,7 @@ namespace PL0Editor
                 CodeEditor.TextArea.Caret.Column = row.Location.Col;
                 CodeEditor.Focus();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private Compiler.Position Location { get; set; }
@@ -785,7 +785,7 @@ namespace PL0Editor
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
     }
 }

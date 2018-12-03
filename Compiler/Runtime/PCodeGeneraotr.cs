@@ -166,7 +166,7 @@ namespace Compiler
                     {
                         i.Arg = CodeSeg[i.Arg].Start;
                     }
-                    catch
+                    catch (Exception)
                     {
 
                     }

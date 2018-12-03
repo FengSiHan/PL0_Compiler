@@ -70,7 +70,7 @@ namespace Compiler
                     ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
                 }
             }
-            catch { }
+            catch (Exception) { }
             StaticCodeAnalysis(null, AstTree);
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
@@ -174,7 +174,7 @@ namespace Compiler
                     }
                 }
             }
-            catch
+            catch (Exception)
             {
 
             }
@@ -759,7 +759,7 @@ namespace Compiler
                         //赋值语句
                         SkipControlList.Add(Token.SEMICOLON);
                         if (CurrentToken() == Token.UNTIL || CurrentToken() == Token.THEN
-                            || CurrentToken() == Token.ELSE|| CurrentToken() == Token.DO
+                            || CurrentToken() == Token.ELSE || CurrentToken() == Token.DO
                             || (string)CurrentToken()?.Content == "odd" || Keys.Contains((string)CurrentToken().Content))
                         {
                             return null;
@@ -1118,7 +1118,7 @@ namespace Compiler
                 }
             }
 
-            catch { }
+            catch (Exception) { }
         }
 
         private void TraversalExpr(Env env, AstNode start, AstNode prev, bool ifLeft)
