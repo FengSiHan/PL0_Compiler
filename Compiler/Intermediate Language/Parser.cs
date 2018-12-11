@@ -258,6 +258,11 @@ namespace Compiler
                         {
                             throw new SyntaxErrorException($"Expect value for assignment", next.Location);
                         }
+                        else if (CurrentToken().TokenType != TokenType.ID)
+                        {
+                            throw new SyntaxErrorException($"Expect Identifier after ',' but '{CurrentToken().Content}'", CurrentToken().Location);
+                        }
+                        continue;
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
@@ -424,6 +429,11 @@ namespace Compiler
                         {
                             break;
                         }
+                        else if (CurrentToken().TokenType != TokenType.ID)
+                        {
+                            throw new SyntaxErrorException($"Expect Identifier after ',' but '{CurrentToken().Content}'", CurrentToken().Location);
+                        }
+                        continue;
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
