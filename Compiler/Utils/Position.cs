@@ -42,7 +42,8 @@ namespace Compiler
         {
             if (!(obj is Position))
             {
-                throw new ArgumentException();
+                //throw new ArgumentException();
+                return 1;
             }
             Position pos = obj as Position;
             if (pos.Row > Row)

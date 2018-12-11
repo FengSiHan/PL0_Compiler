@@ -140,7 +140,7 @@ namespace Compiler
                                 }
                                 break;
                             case 5:
-                                sb.Append($"0, {i.Arg}");
+                                sb.Append($"0, {i.Arg}\n");
                                 break;
                         }
                         break;
