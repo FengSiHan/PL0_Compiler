@@ -76,7 +76,7 @@ namespace Compiler
                     ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
                 }
             }
-            catch (Exception) {}
+            catch (Exception) { }
             StaticCodeAnalysis(null, AstTree);
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
@@ -576,7 +576,7 @@ namespace Compiler
                             {
                                 throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of Read function", Line);
                             }
-                            args.Add(new AstNode(AstType.UnknownID, info: CurrentToken().Content));
+                            args.Add(new AstNode(AstType.UnknownID, CurrentToken().Location, info: CurrentToken().Content));
                             if (tokens.MoveNext() == false)
                             {
                                 break;
@@ -625,7 +625,7 @@ namespace Compiler
                             {
                                 throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of write function", Line);
                             }
-                            args.Add(new AstNode(AstType.UnknownID, info: CurrentToken().Content));
+                            args.Add(new AstNode(AstType.UnknownID, CurrentToken().Location, info: CurrentToken().Content));
 
                             if (tokens.MoveNext() == false)
                             {
@@ -648,7 +648,7 @@ namespace Compiler
                             }
                             else if (CurrentToken().TokenType != TokenType.COMMA)
                             {
-                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' followed write", CurrentToken().Location);
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' in write argument list", CurrentToken().Location);
                             }
                         }
                         while (tokens.MoveNext() && CurrentToken().TokenType != TokenType.BRACKET && Keys.Contains(CurrentToken().Content) == false);
@@ -1071,11 +1071,11 @@ namespace Compiler
                             id = env.Find((string)tokenlist[i].Info);
                             if (id == null)
                             {
-                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", tokenlist[i].Location);
                             }
                             else if (id.Type != AstType.Var)
                             {
-                                ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", stmt.Location);
+                                ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", tokenlist[i].Location);
                             }
                             else
                             {
@@ -1091,11 +1091,11 @@ namespace Compiler
                             id = env.Find((string)tokenlist[i].Info);
                             if (id == null)
                             {
-                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
+                                ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", tokenlist[i].Location);
                             }
                             else if (id.Type != AstType.Var && id.Type != AstType.Const)
                             {
-                                ErrorMsg.Add($"'{id.Left.Info}' is illegal,Write() requires const or var id", stmt.Location);
+                                ErrorMsg.Add($"'{id.Left.Info}' is illegal,Write() requires const or var id", tokenlist[i].Location);
                             }
                             else
                             {
@@ -1135,7 +1135,7 @@ namespace Compiler
                 }
             }
 
-            catch (Exception) {}
+            catch (Exception) { }
         }
 
         private void TraversalExpr(Env env, AstNode start, AstNode prev, bool ifLeft)
@@ -1190,7 +1190,7 @@ namespace Compiler
                     var type = node?.Type;
                     if (type == null)
                     {
-                        ErrorMsg.Add($"Unknown Token '{i.Left.Info}',it needs declaring", i.Location);
+                        ErrorMsg.Add($"Unknown Token '{i.Left.Info}',it needs declaring", i.Left.Location);
                     }
                     else if (AstType.Var == type)
                     {
@@ -1198,7 +1198,7 @@ namespace Compiler
                     }
                     else if (AstType.ProcDefine == type)
                     {
-                        ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Location);
+                        ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Left.Location);
                     }
                     else if (AstType.Const == type)
                     {
@@ -1211,7 +1211,7 @@ namespace Compiler
                     var type = node?.Type;
                     if (type == null)
                     {
-                        ErrorMsg.Add($"Unknown Token '{i.Info}',it needs declaring", i.Location);
+                        ErrorMsg.Add($"Unknown Token '{i.Right.Info}',it needs declaring", i.Right.Location);
                     }
                     else if (AstType.Var == type)
                     {
@@ -1219,7 +1219,7 @@ namespace Compiler
                     }
                     else if (AstType.ProcDefine == type)
                     {
-                        ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Location);
+                        ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Right.Location);
                     }
                     else if (AstType.Const == type)
                     {

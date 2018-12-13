@@ -349,12 +349,8 @@ namespace Compiler
                             {
                                 Result.CurrentValue = node;
                                 block.ExprSet.Add(GetValue(Result));
-                            }
-                            if (!find)
-                            {
                                 Result.CurrentValue.Add(Result);
                             }
-
                         }
                     }
                 }
@@ -380,7 +376,7 @@ namespace Compiler
                 {
                     if (i.Type == DAGType.Assign)
                     {
-                        if (deleteList.Contains(i.Left))
+                        if (Active.Contains(i.Left) == false)
                         {
                             temp.Add(i);
                         }
@@ -412,6 +408,13 @@ namespace Compiler
                         if (node.Right.Tags.Count <= 1)
                         {
                             WorkQueue.Enqueue(node.Right);
+                        }
+                        foreach (var t in node.Tags)
+                        {
+                            if (t.Type == DAGType.Temp)
+                            {
+                                DAG.Remove(t);
+                            }
                         }
                     }
                     else
@@ -2363,6 +2366,22 @@ namespace Compiler
                 if (i.Type == DAGType.Temp && i.Active == false)
                 {
                     deleteList.Add(i);
+                }
+                else if (IsExpressionNode(i))
+                {
+                    bool active = false;
+                    foreach (var k in i.Tags)
+                    {
+                        if (k.Type == DAGType.Temp && k.Active)
+                        {
+                            active = true;
+                            break;
+                        }
+                    }
+                    if (!active)
+                    {
+                        deleteList.Add(i);
+                    }
                 }
             }
             foreach (var i in deleteList)
