@@ -41,7 +41,7 @@ namespace Compiler
                 {
                     Execute(InstructionSet[EIP]);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     if (Write != null)
                     {

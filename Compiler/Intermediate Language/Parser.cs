@@ -72,7 +72,7 @@ namespace Compiler
                     ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
                 }
             }
-            catch { }
+            catch (Exception) {}
             StaticCodeAnalysis(null, AstTree);
             ErrorMsg.SortErrorMsgByLine();
             return AstTree;
@@ -159,6 +159,11 @@ namespace Compiler
                         {
                             throw new SyntaxErrorException($"Expect value for assignment", next.Location);
                         }
+                        else if (CurrentToken().TokenType != TokenType.ID)
+                        {
+                            throw new SyntaxErrorException($"Expect ID ater ',' but {CurrentToken().Content}", CurrentToken().Location);
+                        }
+                        continue;
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
@@ -325,6 +330,11 @@ namespace Compiler
                         {
                             break;
                         }
+                        else if (CurrentToken().TokenType != TokenType.ID)
+                        {
+                            throw new SyntaxErrorException($"Expect ID ater ',' but '{CurrentToken().Content}'", CurrentToken().Location);
+                        }
+                        continue;
                     }
                     else if (next.TokenType == TokenType.OP && next.Content is Char && (char)next.Content == '=')
                     {
@@ -994,10 +1004,7 @@ namespace Compiler
                     }
                 }
             }
-            catch
-            {
-
-            }
+            catch (Exception) { }
         }
 
         private void VerifyIdentifier(Env env, AstNode stmt)//基本检查，并且把节点指向最开始声明的节点
@@ -1124,7 +1131,7 @@ namespace Compiler
                 }
             }
 
-            catch { }
+            catch (Exception) {}
         }
 
         private void TraversalExpr(Env env, AstNode start, AstNode prev, bool ifLeft)
