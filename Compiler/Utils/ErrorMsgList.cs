@@ -59,7 +59,7 @@ namespace Compiler
                 Errors.Sort();
 
             }
-            catch
+            catch (Exception)
             {
 
             }
@@ -92,7 +92,7 @@ namespace Compiler
         public int CompareTo(object obj)
         {
             ErrorInfo e = obj as ErrorInfo;
-            if (e == null)
+            if (e == null || Location == null)
                 return -1;
             return this.Location.CompareTo(e.Location);
         }

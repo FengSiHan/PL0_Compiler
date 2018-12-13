@@ -121,7 +121,7 @@ namespace PL0Editor
                             {
                                 env.End = stmts[stmts.Count - 1].Location;
                             }
-                            catch
+                            catch (Exception)
                             {
 
                             }
@@ -185,7 +185,7 @@ namespace PL0Editor
                 }
                 Temp.Add(env);//避免排序
             }
-            catch { }
+            catch (Exception) { }
         }
         internal class Envirment
         {
@@ -286,7 +286,7 @@ namespace PL0Editor
             {
                 textArea.Document.Replace(MainWindow.StartIndex, MainWindow.Length, this.Text);
             }
-            catch
+            catch (Exception)
             {
                 //SetStatus?.BeginInvoke("代码提示模块出现错误", null, null);
             }

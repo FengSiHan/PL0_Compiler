@@ -1394,7 +1394,7 @@ namespace Compiler
             {
                 tmp.Tags.RemoveAt(0);
             }
-            catch
+            catch (Exception)
             {
 
             }

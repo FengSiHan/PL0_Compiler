@@ -27,64 +27,79 @@ namespace PL0Editor
         public MainWindow()
         {
             InitializeComponent();
-            Init();
-
-            parser = new Parser();
-            Temp = new StringBuilder();
-            codeCompletion = new CodeCompletion(this);
-            Saved = true;
-
-            CodeEditor.ShowLineNumbers = true;
-            CodeEditor.Options.HighlightCurrentLine = true;
-            CodeEditor.Options.ConvertTabsToSpaces = true;
-
-
-            //后台代码检查线程
-            AnalyzeCodeError();
-            DispatcherTimer ErrorUpdateTimer = new DispatcherTimer
+            try
             {
-                Interval = TimeSpan.FromSeconds(2),
-            };
-            ErrorUpdateTimer.Tick += (i, j) =>
+                Init();
+            }
+            catch (Exception ex)
             {
+                MessageBox.Show($"编辑器初始化失败: {ex.Message}", "错误");
+                Application.Current.Shutdown();
+            }
+            try
+            {
+                parser = new Parser();
+                Temp = new StringBuilder();
+                codeCompletion = new CodeCompletion(this);
+                Saved = true;
+
+                CodeEditor.ShowLineNumbers = true;
+                CodeEditor.Options.HighlightCurrentLine = true;
+                CodeEditor.Options.ConvertTabsToSpaces = true;
+
+
+                //后台代码检查线程
                 AnalyzeCodeError();
-            };
-            ErrorUpdateTimer.Start();
-
-            DispatcherTimer CodeAnalysisTimer = new DispatcherTimer();
-            CodeAnalysisTimer.Interval = TimeSpan.FromSeconds(2);
-            CodeAnalysisTimer.Tick += (i, j) =>
-            {
-                codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
-            };
-            CodeAnalysisTimer.Start();
-            codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
-            //用于重置代码提示功能
-            DispatcherTimer ResetTimer = new DispatcherTimer();
-            ResetTimer.Interval = TimeSpan.FromSeconds(2);
-            ResetTimer.Tick += (i, j) =>
-            {
-                this.Invoke(() =>
+                DispatcherTimer ErrorUpdateTimer = new DispatcherTimer
                 {
-                    try
+                    Interval = TimeSpan.FromSeconds(2),
+                };
+                ErrorUpdateTimer.Tick += (i, j) =>
+                {
+                    AnalyzeCodeError();
+                };
+                ErrorUpdateTimer.Start();
+
+                DispatcherTimer CodeAnalysisTimer = new DispatcherTimer();
+                CodeAnalysisTimer.Interval = TimeSpan.FromSeconds(2);
+                CodeAnalysisTimer.Tick += (i, j) =>
+                {
+                    codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+                };
+                CodeAnalysisTimer.Start();
+                codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
+                //用于重置代码提示功能
+                DispatcherTimer ResetTimer = new DispatcherTimer();
+                ResetTimer.Interval = TimeSpan.FromSeconds(2);
+                ResetTimer.Tick += (i, j) =>
+                {
+                    this.Invoke(() =>
                     {
-                        lock (completionWindow)
+                        try
                         {
-                            if (completionWindow != null && !completionWindow.IsVisible)
+                            lock (completionWindow)
                             {
-                                completionWindow.Close();
-                                completionWindow = null;
-                                StatusContent.Text = "代码提示重新载入完成";
+                                if (completionWindow != null && !completionWindow.IsVisible)
+                                {
+                                    completionWindow.Close();
+                                    completionWindow = null;
+                                    StatusContent.Text = "代码提示重新载入完成";
+                                }
                             }
                         }
-                    }
-                    catch
-                    {
+                        catch (Exception)
+                        {
 
-                    }
-                });
-            };
-            ResetTimer.Start();
+                        }
+                    });
+                };
+                ResetTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"后台初始化失败 {ex.Message}", "错误");
+                Application.Current.Shutdown();
+            }
         }
 
         CompletionWindow completionWindow;
@@ -131,10 +146,10 @@ namespace PL0Editor
 
         public void CodeEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
-            int start = CodeEditor.SelectionStart - 1;
-            Saved = false;
             try
             {
+                int start = CodeEditor.SelectionStart - 1;
+                Saved = false;
                 if (e.Text.Length != 0)
                 {
                     if (char.IsLetterOrDigit(e.Text[0]))
@@ -214,7 +229,7 @@ namespace PL0Editor
                         {
                             completionWindow.Show();
                         }
-                        catch
+                        catch (Exception)
                         {
                             completionWindow.Close();
                         }
@@ -234,7 +249,7 @@ namespace PL0Editor
                     completionWindow?.Close();
                 }
             }
-            catch
+            catch (Exception)
             {
                 StatusContent.Text = "代码提示模块错误......";
             }
@@ -261,7 +276,7 @@ namespace PL0Editor
                     }
                 }
             }
-            catch
+            catch (Exception)
             {
 
             }
@@ -269,33 +284,43 @@ namespace PL0Editor
 
         private void Save_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            if (CodeEditor.Text.Length > 0)
+            try
             {
-                e.CanExecute = true;
+                if (CodeEditor.Text.Length > 0)
+                {
+                    e.CanExecute = true;
+                }
+                else
+                {
+                    e.CanExecute = false;
+                }
             }
-            else
-            {
-                e.CanExecute = false;
-
-            }
+            catch (Exception) { }
         }
 
         private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(SavePath))
+            try
             {
-                File.WriteAllText(SavePath, new string(CodeEditor.Text.ToCharArray()));
-                return;
+                if (!string.IsNullOrEmpty(SavePath))
+                {
+                    File.WriteAllText(SavePath, new string(CodeEditor.Text.ToCharArray()));
+                    return;
+                }
+                SaveFileDialog dialog = new SaveFileDialog();
+                dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
+                bool? result = dialog.ShowDialog();
+                if (result.Value)
+                {
+                    File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
+                    Saved = true;
+                    SavePath = dialog.FileName;
+                    StatusContent.Text = "文件保存成功";
+                }
             }
-            SaveFileDialog dialog = new SaveFileDialog();
-            dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
-            bool? result = dialog.ShowDialog();
-            if (result.Value)
+            catch (Exception ex)
             {
-                File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
-                Saved = true;
-                SavePath = dialog.FileName;
-                StatusContent.Text = "文件保存成功";
+                MessageBox.Show($"保存文件的时候发生了错误{ex.Message}");
             }
         }
 
@@ -306,30 +331,38 @@ namespace PL0Editor
 
         private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            if (!Saved)
+            try
             {
-                var op = System.Windows.Forms.MessageBox.Show("是否保存文件", "文件已更改", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
-                switch (op)
+                if (!Saved)
                 {
-                    case System.Windows.Forms.DialogResult.OK:
-                        Save_Executed(null, null);
-                        break;
-                    case System.Windows.Forms.DialogResult.No:
-                        break;
-                    case System.Windows.Forms.DialogResult.Cancel:
-                        return;
+                    var op = System.Windows.Forms.MessageBox.Show("是否保存文件", "文件已更改", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
+                    switch (op)
+                    {
+                        case System.Windows.Forms.DialogResult.OK:
+                            Save_Executed(null, null);
+                            break;
+                        case System.Windows.Forms.DialogResult.No:
+                            break;
+                        case System.Windows.Forms.DialogResult.Cancel:
+                            return;
+                    }
+                }
+                OpenFileDialog dialog = new OpenFileDialog();
+                dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
+                bool? result = dialog.ShowDialog();
+                if (result.Value)
+                {
+                    CodeEditor.Text = File.ReadAllText(dialog.FileName);
+                    Saved = true;
+                    SavePath = dialog.FileName;
+                    StatusContent.Text = "文件保存成功";
                 }
             }
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
-            bool? result = dialog.ShowDialog();
-            if (result.Value)
+            catch (Exception ex)
             {
-                CodeEditor.Text = File.ReadAllText(dialog.FileName);
-                Saved = true;
-                SavePath = dialog.FileName;
-                StatusContent.Text = "文件保存成功";
+                MessageBox.Show($"打开文件的时候遇到错误 {ex.Message}", "错误");
             }
+
 
         }
 
@@ -340,7 +373,7 @@ namespace PL0Editor
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void AnalyzeCodeError()
@@ -351,7 +384,7 @@ namespace PL0Editor
                 parser.Parse(new string(code.ToCharArray()));
                 ErrorList.ItemsSource = parser.ErrorMsg.Errors;
             }
-            catch { }
+            catch (Exception) { }
             //MessageBox.Show(parser.ErrorMsg.Errors.Count.ToString());
             //MessageBox.Show(((List<ErrorInfo>)ErrorList.ItemsSource).Count.ToString());
         }
@@ -363,7 +396,7 @@ namespace PL0Editor
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private sealed class VMStartup
@@ -399,7 +432,7 @@ namespace PL0Editor
                         Window.StatusContent.Text = "程序执行完毕";
                     });
                 }
-                catch
+                catch (Exception)
                 { }
             }
         }
@@ -422,22 +455,22 @@ namespace PL0Editor
                 ConsoleThread = new Thread(v.Execute);
                 ConsoleThread.Start();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void StopExecuteCode(object sender, RoutedEventArgs e)
         {
             try
             {
+                ExecuteMI.IsEnabled = true;
+                StopMI.IsEnabled = false;
+                StatusContent.Text = "程序终止执行";
                 ConsoleThread?.Abort();
             }
-            catch
+            catch (Exception)
             {
 
             }
-            ExecuteMI.IsEnabled = true;
-            StopMI.IsEnabled = false;
-            StatusContent.Text = "程序终止执行";
         }
 
         private void Ctrl_PreviewExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -519,7 +552,7 @@ namespace PL0Editor
                 }
                 */
             }
-            catch { }
+            catch (Exception) { }
 
         }
 
@@ -539,7 +572,7 @@ namespace PL0Editor
                     return str.Substring(0, str.Length - 2);
                 });
             }
-            catch
+            catch (Exception)
             {
                 return "";
             }
@@ -559,7 +592,7 @@ namespace PL0Editor
                     ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
                 });
             }
-            catch
+            catch (Exception)
             {
             }
         }
@@ -578,74 +611,95 @@ namespace PL0Editor
                     ConsoleCtrl.SelectionStart = ConsoleCtrl.Text.Length;
                 });
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private void ExecuteExternally(object sender, RoutedEventArgs e)
         {
-            string path = Environment.CurrentDirectory;     // 当前运行程序的相对路径          
-            System.Diagnostics.Process process = new System.Diagnostics.Process();
-            process.StartInfo.FileName = path + "\\VM.exe";   // 文件路径 + 文件名       
-            process.StartInfo.Arguments = "\"" + new string(CodeEditor.Text.ToCharArray()) + "\" 0";
-            process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
-            process.StartInfo.CreateNoWindow = false;
-            process.Start();
-
+            try
+            {
+                string path = Environment.CurrentDirectory;     // 当前运行程序的相对路径          
+                System.Diagnostics.Process process = new System.Diagnostics.Process();
+                process.StartInfo.FileName = path + "\\VM.exe";   // 文件路径 + 文件名       
+                process.StartInfo.Arguments = "\"" + new string(CodeEditor.Text.ToCharArray()) + "\" 0";
+                process.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+                process.StartInfo.CreateNoWindow = false;
+                process.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"外部执行的时候遇到了错误 {ex.Message}", "错误");
+            }
         }
 
         private void SaveAs(object sender, RoutedEventArgs e)
         {
-            if (CodeEditor.Text.Length == 0)
+            try
             {
-                StatusContent.Text = "一开始让我储存空文件我是拒绝的，DUANG";
+                if (CodeEditor.Text.Length == 0)
+                {
+                    StatusContent.Text = "一开始让我储存空文件我是拒绝的，DUANG";
+                }
+                SaveFileDialog dialog = new SaveFileDialog();
+                dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
+                bool? result = dialog.ShowDialog();
+                if (result.Value)
+                {
+                    File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
+                    StatusContent.Text = "文件另存成功";
+                }
             }
-            SaveFileDialog dialog = new SaveFileDialog();
-            dialog.Filter = "文本文件|*.txt|PL0文件|*.pl0|所有文件|*.*";
-            bool? result = dialog.ShowDialog();
-            if (result.Value)
+            catch (Exception ex)
             {
-                File.WriteAllText(dialog.FileName, new string(CodeEditor.Text.ToCharArray()));
-                StatusContent.Text = "文件另存成功";
+                MessageBox.Show($"另存为的时候遇到错误 {ex.Message}", "错误");
             }
         }
 
         private void ExportPCode(object sender, RoutedEventArgs e)
         {
-            List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
-            if (list.Count > 0)
+            try
             {
-                StatusContent.Text = "在执行前请改正所有错误";
-                return;
-            }
-            MenuItem item = sender as MenuItem;
-            char level = ((string)item.Header)[0];
-            int Level = 0;
-            switch (level)
-            {
-                case '1':
-                    Level = 1;
-                    break;
-                case '2':
-                    Level = 2;
-                    break;
-                case '3':
-                    Level = 3;
-                    break;
-            }
 
-            string code = new string(CodeEditor.Text.ToCharArray());
-            SaveFileDialog dialog = new SaveFileDialog();
-            bool? result = dialog.ShowDialog();
-            if (result.Value)
+                List<ErrorInfo> list = ErrorList.ItemsSource as List<ErrorInfo>;
+                if (list.Count > 0)
+                {
+                    StatusContent.Text = "在执行前请改正所有错误";
+                    return;
+                }
+                MenuItem item = sender as MenuItem;
+                char level = ((string)item.Header)[0];
+                int Level = 0;
+                switch (level)
+                {
+                    case '1':
+                        Level = 1;
+                        break;
+                    case '2':
+                        Level = 2;
+                        break;
+                    case '3':
+                        Level = 3;
+                        break;
+                }
+
+                string code = new string(CodeEditor.Text.ToCharArray());
+                SaveFileDialog dialog = new SaveFileDialog();
+                bool? result = dialog.ShowDialog();
+                if (result.Value)
+                {
+                    PCodeGeneraotr generaotr = new PCodeGeneraotr();
+                    generaotr.GenerateCode(code, Level);
+                    TextWriter writer = new StreamWriter(File.Create(dialog.FileName));
+                    Console.SetOut(writer);
+                    generaotr.PrintCode();
+                    writer.Flush();
+                    writer.Dispose();
+                    StatusContent.Text = "PCode导出成功";
+                }
+            }
+            catch (Exception ex)
             {
-                PCodeGeneraotr generaotr = new PCodeGeneraotr();
-                generaotr.GenerateCode(code, Level);
-                TextWriter writer = new StreamWriter(File.Create(dialog.FileName));
-                Console.SetOut(writer);
-                generaotr.PrintCode();
-                writer.Flush();
-                writer.Dispose();
-                StatusContent.Text = "PCode导出成功";
+                MessageBox.Show($"导出PCode的时候遇到错误 {ex.Message}", "错误");
             }
         }
 
@@ -659,67 +713,79 @@ namespace PL0Editor
                 CodeEditor.TextArea.Caret.Column = row.Location.Col;
                 CodeEditor.Focus();
             }
-            catch { }
+            catch (Exception) { }
         }
 
         private Compiler.Position Location { get; set; }
 
         private void DisplayPCode(object sender, RoutedEventArgs e)
         {
-            if (disp == null) disp = new DisplayWindow(this);
-            MenuItem item = sender as MenuItem;
-            char level = ((string)item.Header)[0];
-            int Level = 0;
-            switch (level)
+            try
             {
-                case '1':
-                    Level = 1;
-                    break;
-                case '2':
-                    Level = 2;
-                    break;
-                case '3':
-                    Level = 3;
-                    break;
+                if (disp == null) disp = new DisplayWindow(this);
+                MenuItem item = sender as MenuItem;
+                char level = ((string)item.Header)[0];
+                int Level = 0;
+                switch (level)
+                {
+                    case '1':
+                        Level = 1;
+                        break;
+                    case '2':
+                        Level = 2;
+                        break;
+                    case '3':
+                        Level = 3;
+                        break;
+                }
+                PCodeGeneraotr pg = new PCodeGeneraotr();
+                pg.GenerateCode(CodeEditor.Text, Level);
+                disp.Show(pg.GetPCodeString());
             }
-            PCodeGeneraotr pg = new PCodeGeneraotr();
-            pg.GenerateCode(CodeEditor.Text, Level);
-            disp.Show(pg.GetPCodeString());
+            catch (Exception ex)
+            {
+                MessageBox.Show($"编译PCode的时候遇到错误 {ex.Message}", "错误");
+            }
         }
 
         private void DisplayQ(object sender, RoutedEventArgs e)
         {
-            if (disp == null) disp = new DisplayWindow(this);
-            MenuItem item = sender as MenuItem;
-            char level = ((string)item.Header)[0];
-            int Level = 0;
-            switch (level)
+            try
             {
-                case '1':
-                    Level = 1;
-                    break;
-                case '2':
-                    Level = 2;
-                    break;
-                case '3':
-                    Level = 3;
-                    break;
+                if (disp == null) disp = new DisplayWindow(this);
+                MenuItem item = sender as MenuItem;
+                char level = ((string)item.Header)[0];
+                int Level = 0;
+                switch (level)
+                {
+                    case '1':
+                        Level = 1;
+                        break;
+                    case '2':
+                        Level = 2;
+                        break;
+                    case '3':
+                        Level = 3;
+                        break;
+                }
+                ILGenerator generator = new ILGenerator();
+                generator.GenerateCode(CodeEditor.Text, Level);
+                disp.Show(generator.GetCodeString());
             }
-            ILGenerator generator = new ILGenerator();
-            generator.GenerateCode(CodeEditor.Text, Level);
-            disp.Show(generator.GetCodeString());
+            catch (Exception ex)
+            {
+                MessageBox.Show($"编译四元式的时候遇到错误 {ex.Message}", "错误");
+            }
         }
-
         private void UpdateCodeEditor(object sender, MouseButtonEventArgs e)
         {
             completionWindow?.Close();
-
             try
             {
                 RowText.Text = CodeEditor.TextArea.Caret.Line.ToString();
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
-            catch { }
+            catch (Exception) { }
         }
     }
 }
