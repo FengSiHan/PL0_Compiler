@@ -691,9 +691,10 @@ namespace PL0Editor
                     generaotr.GenerateCode(code, Level);
                     TextWriter writer = new StreamWriter(File.Create(dialog.FileName));
                     Console.SetOut(writer);
-                    generaotr.PrintCode();
+                    Console.WriteLine(generaotr.GetPCodeString());
                     writer.Flush();
                     writer.Dispose();
+                    Console.SetOut(Console.Out);
                     StatusContent.Text = "PCode导出成功";
                 }
             }
