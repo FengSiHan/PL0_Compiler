@@ -52,14 +52,18 @@ namespace Compiler
             }
             catch (Exception)
             {
-                if (CurrentToken() != Token.PERIOD)
+                try
                 {
-                    ErrorMsg.Add("Expect '.' at the end of code", CurrentToken()?.Location);
+                    if (CurrentToken() != Token.PERIOD)
+                    {
+                        ErrorMsg.Add("Expect '.' at the end of code", ReferenceEquals(CurrentToken(), null) ? tokens.GetLast().Location : CurrentToken().Location);
+                    }
+                    else if (ErrorMsg.Errors.Count != 0)
+                    {
+                        ErrorMsg.Add("Expect more input", CurrentToken()?.Location);
+                    }
                 }
-                else if (ErrorMsg.Errors.Count != 0)
-                {
-                    ErrorMsg.Add("Expect more input", CurrentToken()?.Location);
-                }
+                catch (Exception) { }
             }
             finally
             {
@@ -1039,8 +1043,8 @@ namespace Compiler
                         TraversalExpr(env, stmt.Right, stmt, false);
                         break;
                     case AstType.Call:
-                        //注意只能call同级分程序
-                        id = env.FindNoRecursion((string)stmt.Info);
+                        //注意不一定只能call同级分程序
+                        id = env.Find((string)stmt.Info);
                         if (id == null)
                         {
                             ErrorMsg.Add($"Unknown Token '{stmt.Info}',it needs declaring", stmt.Location);
@@ -1245,7 +1249,7 @@ namespace Compiler
             if (CurrentToken() == null || Expect != null && CurrentToken() != Expect)
             {
                 throw new SyntaxErrorException($"Unexpected Token '{CurrentToken()?.Content}' ,Miss Expected tokens '{Expect?.Content}'",
-                    (CurrentToken() == null ? new Position(-1, 0) : CurrentToken()?.Location));
+                    (ReferenceEquals(null, CurrentToken()) ? tokens.GetLast().Location : CurrentToken()?.Location));
             }
             if (Expect.TokenType != TokenType.PERIOD && !tokens.MoveNext())
             {

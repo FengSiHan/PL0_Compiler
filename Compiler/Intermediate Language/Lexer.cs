@@ -40,11 +40,13 @@ namespace Compiler
                 }
                 else if (Char.IsDigit(peek))
                 {
-                    yield return new Token(TokenType.NUM, GetSubstringByCond(peek, Char.IsDigit), Row, Col);
+                    int row = Row, col = Col;
+                    yield return new Token(TokenType.NUM, GetSubstringByCond(peek, Char.IsDigit), row, col);
                 }
                 else if (Char.IsLetter(peek))
                 {
-                    yield return new Token(TokenType.ID, GetSubstringByCond(peek, Char.IsLetterOrDigit), Row, Col);
+                    int row = Row, col = Col;
+                    yield return new Token(TokenType.ID, GetSubstringByCond(peek, Char.IsLetterOrDigit), row, col);
                 }
                 else if (peek == '=')
                 {
@@ -115,7 +117,7 @@ namespace Compiler
                 else
                 {
                     string tmp = "";
-                    int col = Col;
+                    int row = Row, col = Col;
                     while (!char.IsWhiteSpace(peek))
                     {
                         tmp += peek;
@@ -125,7 +127,7 @@ namespace Compiler
                         }
                         peek = chars.Current;
                     }
-                    ErrorMsg.Add($"Unknown Token '{tmp}'", Row, col);
+                    ErrorMsg.Add($"Unknown Token '{tmp}'", row, col);
                 }
 
                 //else if ("\"\'".IndexOf(peek) != -1) yield return new Token(TokenType.STRING, (object)TODO, Line); //PL0 doesn't have string
@@ -137,7 +139,7 @@ namespace Compiler
         {
             Text = text;
             Row = 1;
-            Col = 0;
+            Col = 1;
             chars = Text.GetEnumerator();
             dont_move = true;
             ErrorMsg = new ErrorMsgList(MaxErrors);

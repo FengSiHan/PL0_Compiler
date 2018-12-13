@@ -149,11 +149,33 @@ namespace PL0Editor
             try
             {
                 int start = CodeEditor.SelectionStart - 1;
+                
+
                 Saved = false;
                 if (e.Text.Length != 0)
                 {
                     if (char.IsLetterOrDigit(e.Text[0]))
                     {
+                        //判断是否在var和const声明区域
+                        if (CodeEditor.Text.Length > 0)
+                        {
+                            int end = CodeEditor.TextArea.Caret.Offset, k;
+                            if (end >= CodeEditor.Text.Length) end = CodeEditor.Text.Length - 1;
+                            k = end;
+                            while (k > -1 && CodeEditor.Text[k] != ';')
+                            {
+                                --k;
+                            }
+                            if (k < 0) k = 0;
+                            string loc = CodeEditor.Text.Substring(k, end - k + 1);
+                            if (loc.Contains("const") || loc.Contains("var"))
+                            {
+                                e.Handled = true;
+                                completionWindow.Close();
+                                completionWindow = null;
+                                return;
+                            }
+                        }
                         while (start > -1 && char.IsLetterOrDigit(CodeEditor.Text[start]))
                         {
                             --start;
@@ -397,44 +419,6 @@ namespace PL0Editor
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
             catch (Exception) { }
-        }
-
-        private sealed class VMStartup
-        {
-            private string Code;
-            private VirtualMachine VM;
-            private MainWindow Window;
-
-            internal VMStartup(VirtualMachine vm, string code, MainWindow window)
-            {
-                VM = vm;
-                Code = code;
-                Window = window;
-                VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write, window.Ctrl_Write);
-            }
-
-            internal void Execute()
-            {
-                try
-                {
-                    Window.Invoke(() =>
-                    {
-                        Window.ExecuteMI.IsEnabled = false;
-                        Window.StopMI.IsEnabled = true;
-                        Window.StatusContent.Text = "程序开始执行";
-                    });
-                    VM.Run(Code, 0);
-                    Window.Invoke(() =>
-                    {
-                        Window.ExecuteMI.IsEnabled = true;
-                        Window.StopMI.IsEnabled = false;
-                        Window.ConsoleCtrl.AppendText("程序成功退出\n");
-                        Window.StatusContent.Text = "程序执行完毕";
-                    });
-                }
-                catch (Exception)
-                { }
-            }
         }
 
         private void ExecuteCode(object sender, RoutedEventArgs e)
@@ -778,6 +762,7 @@ namespace PL0Editor
                 MessageBox.Show($"编译四元式的时候遇到错误 {ex.Message}", "错误");
             }
         }
+
         private void UpdateCodeEditor(object sender, MouseButtonEventArgs e)
         {
             completionWindow?.Close();
@@ -787,6 +772,44 @@ namespace PL0Editor
                 ColText.Text = CodeEditor.TextArea.Caret.Column.ToString();
             }
             catch (Exception) { }
+        }
+
+        private sealed class VMStartup
+        {
+            private string Code;
+            private VirtualMachine VM;
+            private MainWindow Window;
+
+            internal VMStartup(VirtualMachine vm, string code, MainWindow window)
+            {
+                VM = vm;
+                Code = code;
+                Window = window;
+                VM.SetInOutFunction(window.Ctrl_Read, window.Ctrl_Write, window.Ctrl_Write);
+            }
+
+            internal void Execute()
+            {
+                try
+                {
+                    Window.Invoke(() =>
+                    {
+                        Window.ExecuteMI.IsEnabled = false;
+                        Window.StopMI.IsEnabled = true;
+                        Window.StatusContent.Text = "程序开始执行";
+                    });
+                    VM.Run(Code, 0);
+                    Window.Invoke(() =>
+                    {
+                        Window.ExecuteMI.IsEnabled = true;
+                        Window.StopMI.IsEnabled = false;
+                        Window.ConsoleCtrl.AppendText("程序成功退出\n");
+                        Window.StatusContent.Text = "程序执行完毕";
+                    });
+                }
+                catch (Exception)
+                { }
+            }
         }
     }
 }

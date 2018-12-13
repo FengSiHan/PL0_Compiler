@@ -61,10 +61,12 @@ namespace Compiler
             return null;
         }
 
+        /*
         internal AstNode FindNoRecursion(string ID)
         {
             if (dict.ContainsKey(ID)) return dict[ID];
             return null;
         }
+        */
     }
 }

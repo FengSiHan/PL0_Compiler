@@ -10,6 +10,7 @@ namespace Compiler
     {
         private IEnumerator<T> Data;
         private bool MoreData;
+        private T Last;
         public Enumerator(IEnumerator<T> data)
         {
             Data = data;
@@ -23,12 +24,17 @@ namespace Compiler
         {
             if (MoreData)
             {
+                Last = Data.Current;
                 return Data.Current;
             }
             else
             {
                 return default(T);
             }
+        }
+        public T GetLast()
+        {
+            return Last;
         }
     }
 }

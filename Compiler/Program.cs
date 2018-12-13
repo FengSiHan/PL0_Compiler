@@ -7,25 +7,26 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    
+
     class Program
     {
         public static void Main(string[] arg)
         {
             string code = File.ReadAllText($"../../test.pl0");
+            Lexer lexer = new Lexer(code);
+            foreach (var i in lexer.Scan())
+            {
+                Console.WriteLine(string.Format("{0, -10}", i.Content) + "   " + i.Location);
+            }
+            Console.WriteLine("\n四元式:");
             Parser parser = new Parser();
             parser.Parse(code);
             Console.WriteLine(parser.GetErrorMsgString());
-            if (parser.ErrorMsg.Count() != 0)
-            {
-                Console.WriteLine("按任意键继续");
-                Console.ReadKey();
-            }
+
             ILGenerator ilg = new ILGenerator();
             ilg.GenerateCode(code, 0);
             Console.WriteLine(ilg.GetCodeString());
-            Console.WriteLine("按任意键继续");
-            Console.ReadKey();
+            Console.WriteLine("\nPCode\n");
 
             PCodeGeneraotr pcg = new PCodeGeneraotr();
             pcg.GenerateCode(code, 0);
@@ -35,7 +36,6 @@ namespace Compiler
 
             VirtualMachine vm = new VirtualMachine();
             vm.Run(code, 0);
-
         }
     }
 }

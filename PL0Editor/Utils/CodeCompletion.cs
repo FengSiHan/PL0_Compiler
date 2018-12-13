@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -32,6 +32,7 @@ namespace PL0Editor
             {
                 Temp.Clear();
                 Global.Clear();
+                
                 foreach (var i in Envirment.Keys)
                 {
                     Global.Reserve(i, EType.Keyword);
@@ -53,7 +54,7 @@ namespace PL0Editor
                 }
                 foreach (var i in Envirment.Keys)
                 {
-                    Temp.Last().Reserve(i, EType.Keyword);
+                    Temp[Temp.Count - 1].Reserve(i, EType.Keyword);
                 }
                 lock (Symbols)
                 {
