@@ -270,12 +270,13 @@ namespace Compiler
             Write = WriteFunction;
             WriteString = WriteStringFunc;
         }
-        private ReadDelegate Read = null;
+
+        public delegate void WriteDelegate(int v);
+        public delegate void WriteStringDelegate(string v); private ReadDelegate Read = null;
+
         private WriteDelegate Write = null;
         private WriteStringDelegate WriteString = null;
         public delegate string ReadDelegate();
-        public delegate void WriteDelegate(int v);
-        public delegate void WriteStringDelegate(string v);
         private Stack<int> RuntimeStack;
         private Dictionary<int, int> TempPool;
         private List<QuadrupleNode> VarSeg;

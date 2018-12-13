@@ -24,60 +24,14 @@ namespace Compiler
                 return null;
             }
             ErrorMsg = GetIL.ErrorMsg;
-            GetIL.GetCode(ref CodeSeg, ref VarSeg);
+            GetIL.GetInfo(ref CodeSeg, ref VarSeg);
             GetPCode();
             return Programs;
         }
 
-        public void PrintError()
+        public string GetErrorMsgString()
         {
-            GetIL.PrintError();
-        }
-
-        public void PrintCode()
-        {
-            if (Programs.Count == 0)
-            {
-                Console.WriteLine("Please Call 'GeneratePCode first'");
-                return;
-            }
-            int index = 0;
-            foreach (var i in Programs)
-            {
-                Console.Write(string.Format("{0,-3}-> ", index++));
-                Console.Write(string.Format("{0,-6} ", Enum.GetName(i.INS.GetType(), i.INS)));
-                switch (i.INS)
-                {
-                    case PCode.EXP:
-                    case PCode.HALT:
-                    case PCode.MOD:
-                    case PCode.NOT:
-                    case PCode.WRT:
-                        Console.WriteLine();
-                        break;
-                    case PCode.LOD:
-                        Console.WriteLine($"{i.Level}, {i.Offset}");
-                        break;
-                    case PCode.STO:
-                        Console.WriteLine($"{i.Level}, {i.Offset}");
-                        break;
-                    default:
-                        switch (i.DataType)
-                        {
-                            case 1:
-                            case 4:
-                                Console.WriteLine(i.Arg);
-                                break;
-                            case 2:
-                                Console.WriteLine($"t{i.Arg}");
-                                break;
-                            case 3:
-                                Console.WriteLine(VarSeg[i.Arg].Value);
-                                break;
-                        }
-                        break;
-                }
-            }
+            return GetIL.GetErrorMsgString();
         }
 
         public string GetPCodeString()
@@ -101,13 +55,6 @@ namespace Compiler
                     case PCode.WRT:
                         sb.Append("\n");
                         break;
-                    /*
-                case PCode.LOD:
-                    sb.Append($"{i.Level}, {i.Offset}\n");
-                    break;
-                case PCode.STO:
-                    sb.Append($"{i.Level}, {i.Offset}\n");
-                    break;*/
                     default:
                         switch (i.DataType)
                         {
@@ -129,7 +76,7 @@ namespace Compiler
                                 sb.Append($"t{i.Arg}\n");
                                 break;
                             case 3:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO)
+                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.RED)
                                 {
                                     sb.Append($"{i.Level}, {i.Offset}\n");
                                 }
@@ -358,73 +305,11 @@ namespace Compiler
             Programs.Add(node);
         }
 
+        internal List<QuadrupleNode> VarSeg;
         private List<PNode> Programs;
         private ILGenerator GetIL;
-        internal List<QuadrupleNode> VarSeg;
         private List<QuadrupleNode> CodeSeg;
         private int IsJump = Convert.ToInt32(QuadrupleType.JMP);
         public ErrorMsgList ErrorMsg;
-    }
-
-
-    public enum PCode
-    {
-        //lit a    : load constant a    读取常量a到数据栈栈顶
-        //opr      : execute operation a    执行a运算
-        //lod l, a : load variable l, a    读取变量放到数据栈栈顶，变量的相对地址为a，层次差为1
-        //sto l, a : store variable l, a    将数据栈栈顶内容存入变量，变量的相对地址为a，层次差为1
-        //cal a    : call procedure a at level l    调用过程，过程入口指令为a, 层次差为1
-        //jmp a    : jump to a    无条件跳转到指令地址a
-        //jpc a    : jump conditional to a    条件转移到指令地址a
-        //red a    : read variable l, a    读数据并存入变量，
-        //wrt      : write stack-top    将栈顶内容输出
-        LIT,
-        LOD,
-        STO,
-        CAL,
-        INT,
-        JMP,
-        JPC,
-        RED,
-        WRT,
-        HALT,
-        EXP,
-        MOD,
-        NOT, //^
-        OPR
-    }
-    public class PNode
-    {
-        public readonly PCode INS;
-
-        public int Arg;
-
-        public readonly int DataType;
-
-        public int Offset;
-
-        public int Level;
-
-        /// <summary>
-        /// Type: 1:立即数，2:临时变量，3:变量，4:地址, 5:类型
-        /// </summary>
-        /// <param name="ins"></param>
-        /// <param name="arg"></param>
-        /// <param name="type"> </param>
-        internal PNode(PCode ins, int arg, int type)
-        {
-            DataType = type;
-            Arg = arg;
-            INS = ins;
-        }
-        internal PNode(PCode ins)
-        {
-            INS = ins;
-        }
-    }
-
-    public partial class QuadrupleNode
-    {
-        internal int Start;
     }
 }

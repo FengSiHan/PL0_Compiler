@@ -11,6 +11,12 @@ namespace Compiler
     internal class Optimize
     {
         #region 功能实现
+        /// <summary>
+        /// 优化器构造函数
+        /// </summary>
+        /// <param name="codeseg">Parser生成的CodeSeg</param>
+        /// <param name="varseg">Parser生成的VarSeg</param>
+        /// <param name="code_entrance">程序入口在CodeSeg中偏移量</param>
         public Optimize(List<QuadrupleNode> codeseg, List<QuadrupleNode> varseg, int code_entrance)
         {
             CodeSeg = codeseg;
@@ -2404,10 +2410,10 @@ namespace Compiler
                 }
             }
         }
+
         /// <summary>
         /// 会导致基本块的重划分
         /// </summary>
-
         private void DivideBlock()
         {
             //划分基本块，同时创建好控制流中基本块的前驱后继
@@ -2837,7 +2843,7 @@ namespace Compiler
         private bool[] DectectedInductionVar;
         private int CodeAddr;
         private int Temp;
-        internal Block EntranceBlock;
+        private Block EntranceBlock;
         #endregion
 
         #region 辅助类声明
@@ -2848,7 +2854,7 @@ namespace Compiler
         {
             internal int Start, End;//[start,end]
             internal List<DAGNode> DAG;
-            internal List<Block> Prev; //从何处跳转而来C:\Users\FSH\Source\Repos\PL0_Compiler\Compiler\Optimize.cs
+            internal List<Block> Prev; //从何处跳转而来
             internal List<Block> Next; //该基本块结束后跳转至何处,这是条件跳转条件不成立时跳转的地址
             internal List<DAGNode> OutAvailableExpr;
             internal List<DAGNode> InAvailableExpr;
@@ -2993,7 +2999,7 @@ namespace Compiler
         /// <summary>
         /// 归纳变量的简化记录
         /// </summary>
-        internal class Triple
+        private class Triple
         {
             internal struct Pair
             {

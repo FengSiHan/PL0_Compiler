@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
+    /// <summary>
+    /// 语法分析，能够实现编译返回语法树以及实现错误消息
+    /// </summary>
     public class Parser
     {
         /*                                        |-->ConstDefine   ---
@@ -16,8 +19,7 @@ namespace Compiler
          *             |-->Statement
          */
 
-
-        #region ---Funciton---
+        #region ---Public---
         public Parser()
         {
             Keys = new HashSet<string>(new string[] { "procedure", "if", "while", "call", "begin", "repeat", "read", "write", "var", "const", "end" });
@@ -76,138 +78,37 @@ namespace Compiler
             return AstTree;
         }
 
-        public void StaticCodeAnalysis(Env preenv, AstNode subproc) //递归分程序解析
+        public string GetErrorMsgString()
         {
-            if (subproc == null)
-                return;
-
-            try
-            {
-                Env env = new Env(preenv);
-                AstNode constDefine = subproc.Left.Left.Left,
-                    varDefine = subproc.Left.Left.Right,
-                    procDefine = subproc.Left.Right,
-                    stmt = subproc.Right;
-                List<AstNode> consts = constDefine.Info as List<AstNode>,
-                    vars = varDefine.Info as List<AstNode>,
-                    procs = procDefine.Info as List<AstNode>;
-
-                /*
-                 * -1: keys
-                 *  0: ok
-                 *  1: unknown
-                 *  2: already exist
-                 */
-                if (consts != null)
-                {
-                    foreach (var i in consts)
-                    {
-                        int res = env.Reserve(i);
-                        switch (res)
-                        {
-                            case -1:
-                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                                break;
-                            case 1:
-                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
-                                break;
-                            case 2:
-                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                                break;
-                        }
-                    }
-                }
-                if (vars != null)
-                {
-                    foreach (var i in vars)
-                    {
-                        int res = env.Reserve(i);
-                        switch (res)
-                        {
-                            case -1:
-                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                                break;
-                            case 1:
-                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
-                                break;
-                            case 2:
-                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                                break;
-                        }
-                    }
-                }
-                //递归解析
-                if (procs != null)
-                {
-                    foreach (var i in procs)
-                    {
-                        int res = env.Reserve(i);
-                        switch (res)
-                        {
-                            case -1:
-                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
-                                break;
-                            case 1:
-                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
-                                break;
-                            case 2:
-                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
-                                break;
-                            case 0:
-                                StaticCodeAnalysis(env, i.Right);
-                                break;
-                        }
-                    }
-                }
-                if (stmt != null)
-                {
-                    if (stmt.Type == ExprType.Statements)
-                    {
-                        foreach (var i in (List<AstNode>)stmt.Info)
-                        {
-                            VerifyIdentifier(env, i);
-                        }
-                    }
-                    else
-                    {
-                        VerifyIdentifier(env, stmt);
-                    }
-                }
-            }
-            catch
-            {
-
-            }
+            return ErrorMsg.GetErrorMsgString();
         }
 
-        public void PrintErrorMsg()
-        {
-            ErrorMsg.PrintErrorMsg();
-        }
         public int GetNumofErrors()
         {
             return ErrorMsg.Count();
         }
+
+        public ErrorMsgList ErrorMsg { get; private set; }
         #endregion
 
         #region --- Syntax Analysis---
         //所有函数满足任意一次 匹配/错误部分跳过 完成后，current都指向下一个待解析的Token,匹配失败仍然满足current指向待解析Token
         private AstNode SubProgram()
         {
-            AstNode left = new AstNode(ExprType.Define,
-                new AstNode(ExprType.IdDefine, left: new AstNode(ExprType.ConstDefine), right: new AstNode(ExprType.VarDefine)),
-                new AstNode(ExprType.ProcsDefine),
+            AstNode left = new AstNode(AstType.Define,
+                new AstNode(AstType.IdDefine, left: new AstNode(AstType.ConstDefine), right: new AstNode(AstType.VarDefine)),
+                new AstNode(AstType.ProcsDefine),
                 location: CurrentToken()?.Location)
             , right = new AstNode()
             {
-                Type = ExprType.Statement
+                Type = AstType.Statement
             };
 
             Determine(CurrentToken(), t => { return t == Token.CONST; }, ref left.Left.Left, DefineConst);
             Determine(CurrentToken(), t => { return t == Token.VAR; }, ref left.Left.Right, DefineVar);
             Determine(CurrentToken(), t => { return t == Token.PROC; }, ref left.Right, DefineProcedure);
             Determine(CurrentToken(), t => { return true; }, ref right, Statement);
-            return new AstNode(ExprType.SubProgram, left, right, location: left.Location);//分程序
+            return new AstNode(AstType.SubProgram, left, right, location: left.Location);//分程序
         }
 
         private AstNode DefineConst()
@@ -216,7 +117,7 @@ namespace Compiler
             Position position = CurrentToken()?.Location;
             if (CurrentToken() == null)
             {
-                return new AstNode(ExprType.ConstDefine, null, null, Definition, position);
+                return new AstNode(AstType.ConstDefine, null, null, Definition, position);
             }
             SkipControlList.Add(Token.SEMICOLON);
             try
@@ -234,8 +135,8 @@ namespace Compiler
                         throw new SyntaxErrorException($"Unexpected Token '{peek.Content}',Expect ID in const declaration", peek.Location);
                     }
 
-                    AstNode node = new AstNode(ExprType.Const,
-                        new AstNode(ExprType.ConstID, null, null, peek.Content, peek.Location),
+                    AstNode node = new AstNode(AstType.Const,
+                        new AstNode(AstType.ConstID, null, null, peek.Content, peek.Location),
                         location: peek.Location);
                     node.Initialized = true;
                     //Left is Node of ID,Right is its value
@@ -292,7 +193,7 @@ namespace Compiler
                         }
                         else
                         {
-                            node.Right = new AstNode(ExprType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
+                            node.Right = new AstNode(AstType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
                             if (!tokens.MoveNext())
                             {
                                 break;
@@ -336,7 +237,7 @@ namespace Compiler
                         }
                         else
                         {
-                            node.Right = new AstNode(ExprType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
+                            node.Right = new AstNode(AstType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
                             if (!tokens.MoveNext())
                             {
                                 break;
@@ -378,7 +279,7 @@ namespace Compiler
             {
                 SkipControlList.RemoveAt(SkipControlList.Count - 1);
             }
-            return new AstNode(ExprType.ConstDefine, null, null, Definition, position);
+            return new AstNode(AstType.ConstDefine, null, null, Definition, position);
         }
 
         private AstNode DefineVar()
@@ -388,7 +289,7 @@ namespace Compiler
             SkipControlList.Add(Token.SEMICOLON);
             if (CurrentToken() == null)
             {
-                return new AstNode(ExprType.VarDefine, null, null, Definition, position);
+                return new AstNode(AstType.VarDefine, null, null, Definition, position);
             }
             try
             {
@@ -404,7 +305,7 @@ namespace Compiler
                         throw new SyntaxErrorException($"Unexpected Token '{peek.Content}', Expect ID in var declaration", peek.Location);
                     }
 
-                    AstNode node = new AstNode(ExprType.Var, new AstNode(ExprType.VarID, null, null, peek.Content, peek.Location), location: peek.Location); //Left is Node of ID,Right is its value
+                    AstNode node = new AstNode(AstType.Var, new AstNode(AstType.VarID, null, null, peek.Content, peek.Location), location: peek.Location); //Left is Node of ID,Right is its value
 
                     if (!tokens.MoveNext())
                     {
@@ -514,7 +415,7 @@ namespace Compiler
             {
                 SkipControlList.RemoveAt(SkipControlList.Count - 1);
             }
-            return new AstNode(ExprType.VarDefine, null, null, Definition, position);
+            return new AstNode(AstType.VarDefine, null, null, Definition, position);
         }
 
         private AstNode DefineProcedure() // 可能为数个procedure声明
@@ -523,7 +424,7 @@ namespace Compiler
             Position position = CurrentToken().Location;
             if (CurrentToken() == null)
             {
-                return new AstNode(ExprType.ProcsDefine, null, null, Definition, position);
+                return new AstNode(AstType.ProcsDefine, null, null, Definition, position);
             }
             while (CurrentToken() == Token.PROC)
             {
@@ -534,7 +435,7 @@ namespace Compiler
                         throw new SyntaxErrorException("Missing Procedure Definition ", position);
                     }
 
-                    AstNode left = new AstNode(ExprType.ProcDefine, null, null, CurrentToken().Content, CurrentToken().Location);
+                    AstNode left = new AstNode(AstType.ProcDefine, null, null, CurrentToken().Content, CurrentToken().Location);
                     if (!tokens.MoveNext())
                     {
                         break;
@@ -542,7 +443,7 @@ namespace Compiler
                     CheckExpectToken(Token.SEMICOLON);
 
                     AstNode right = SubProgram();
-                    AstNode proc = new AstNode(ExprType.ProcDefine, left, right, location: left.Location);
+                    AstNode proc = new AstNode(AstType.ProcDefine, left, right, location: left.Location);
                     Definition.Add(proc);
                     CheckExpectToken(Token.SEMICOLON);
                 }
@@ -564,7 +465,7 @@ namespace Compiler
                     }
                 }
             }
-            return new AstNode(ExprType.ProcsDefine, null, null, Definition, position);
+            return new AstNode(AstType.ProcsDefine, null, null, Definition, position);
         }
 
         private AstNode Statement()
@@ -581,8 +482,8 @@ namespace Compiler
                     case "if":
                         SkipControlList.Add(Token.SEMICOLON);
 
-                        AstNode node_ifelse = new AstNode(ExprType.IfElse, CurrentToken().Location);
-                        AstNode node_if = new AstNode(ExprType.IfElse, CurrentToken().Location);
+                        AstNode node_ifelse = new AstNode(AstType.IfElse, CurrentToken().Location);
+                        AstNode node_if = new AstNode(AstType.IfElse, CurrentToken().Location);
 
                         CheckExpectToken(Token.IF);
 
@@ -611,7 +512,7 @@ namespace Compiler
                     case "while":
                         SkipControlList.Add(Token.DO);
 
-                        AstNode node_whiledo = new AstNode(ExprType.WhileDo, CurrentToken().Location);
+                        AstNode node_whiledo = new AstNode(AstType.WhileDo, CurrentToken().Location);
                         CheckExpectToken(Token.WHILE);
 
                         SkipControlList.Add(Token.DO);//avoid skipping 'do'
@@ -625,7 +526,7 @@ namespace Compiler
                         SkipControlList.Add(Token.SEMICOLON);
 
                         CheckExpectToken(Token.CALL);
-                        AstNode node_call = new AstNode(ExprType.Call, CurrentToken().Location);
+                        AstNode node_call = new AstNode(AstType.Call, CurrentToken().Location);
                         Position Line = CurrentToken().Location;
                         if (CurrentToken()?.TokenType == TokenType.ID)
                         {
@@ -648,7 +549,7 @@ namespace Compiler
                             CheckExpectToken(Token.RBRACKET);
                             throw new SyntaxErrorException("Read funtion needs one or more arguments", Line);
                         }
-                        node = new AstNode(ExprType.Read, Line);
+                        node = new AstNode(AstType.Read, Line);
                         List<AstNode> args = new List<AstNode>();
                         node.Info = args;
                         do
@@ -661,7 +562,7 @@ namespace Compiler
                             {
                                 throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of Read function", Line);
                             }
-                            args.Add(new AstNode(ExprType.UnknownID, info: CurrentToken().Content));
+                            args.Add(new AstNode(AstType.UnknownID, info: CurrentToken().Content));
                             if (tokens.MoveNext() == false)
                             {
                                 break;
@@ -697,7 +598,7 @@ namespace Compiler
                             throw new SyntaxErrorException("Write funtion requires at least one argument", Line);
                         }
 
-                        node = new AstNode(ExprType.Write, Line);
+                        node = new AstNode(AstType.Write, Line);
                         args = new List<AstNode>();
                         node.Info = args;
                         do
@@ -710,7 +611,7 @@ namespace Compiler
                             {
                                 throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' can't be argument of write function", Line);
                             }
-                            args.Add(new AstNode(ExprType.UnknownID, info: CurrentToken().Content));
+                            args.Add(new AstNode(AstType.UnknownID, info: CurrentToken().Content));
 
                             if (tokens.MoveNext() == false)
                             {
@@ -751,7 +652,7 @@ namespace Compiler
                         SkipControlList.Add(Token.UNTIL);
                         Line = CurrentToken().Location;
                         CheckExpectToken(Token.REPEAT);
-                        AstNode node_repeat = new AstNode(ExprType.RepeatUntil, Line, right: Statements());
+                        AstNode node_repeat = new AstNode(AstType.RepeatUntil, Line, right: Statements());
                         CheckExpectToken(Token.UNTIL);
                         node_repeat.Left = ConditionExpr();
                         return node_repeat;
@@ -759,15 +660,15 @@ namespace Compiler
                         //赋值语句
                         SkipControlList.Add(Token.SEMICOLON);
                         if (CurrentToken() == Token.UNTIL || CurrentToken() == Token.THEN
-                            || CurrentToken() == Token.ELSE|| CurrentToken() == Token.DO
+                            || CurrentToken() == Token.ELSE || CurrentToken() == Token.DO
                             || (string)CurrentToken()?.Content == "odd" || Keys.Contains((string)CurrentToken().Content))
                         {
                             return null;
                             //throw new SyntaxErrorException($"Unexcepted token '{CurrentToken().Content}' ,Statement can't start with '{CurrentToken().Content}', Maybe there is a surplus ';' at the end of last statement", CurrentToken().Location);
                         }
-                        AstNode node_assign = new AstNode(ExprType.Assign, CurrentToken().Location)
+                        AstNode node_assign = new AstNode(AstType.Assign, CurrentToken().Location)
                         {
-                            Left = new AstNode(ExprType.UnknownID, null, null, CurrentToken().Content, CurrentToken().Location)
+                            Left = new AstNode(AstType.UnknownID, null, null, CurrentToken().Content, CurrentToken().Location)
                         };
                         tokens.MoveNext();
                         CheckExpectToken(Token.ASSIGN);
@@ -791,7 +692,7 @@ namespace Compiler
 
         private AstNode Statements()
         {
-            AstNode node = new AstNode(ExprType.Statements, CurrentToken()?.Location);
+            AstNode node = new AstNode(AstType.Statements, CurrentToken()?.Location);
             if (CurrentToken() == null)
             {
                 return node;
@@ -838,14 +739,14 @@ namespace Compiler
             {
                 return null;
             }
-            AstNode node = new AstNode(ExprType.Expr, CurrentToken().Location);
+            AstNode node = new AstNode(AstType.Expr, CurrentToken().Location);
             if (CurrentToken().TokenType == TokenType.OP && CurrentToken().Content is char)
             {
                 if ((char)CurrentToken().Content == '-')
                 {
-                    AstNode l_node = new AstNode(ExprType.Minus, CurrentToken().Location)
+                    AstNode l_node = new AstNode(AstType.Minus, CurrentToken().Location)
                     {
-                        Left = new AstNode(ExprType.NUM, null, null, 0, CurrentToken().Location),
+                        Left = new AstNode(AstType.NUM, null, null, 0, CurrentToken().Location),
                         Info = CurrentToken().Content
                     };
                     tokens.MoveNext();
@@ -885,7 +786,7 @@ namespace Compiler
             if (CurrentToken()?.TokenType == TokenType.OP && CurrentToken().Content is char
                 && ((char)CurrentToken().Content == '*' || (char)CurrentToken().Content == '/'))
             {
-                node = new AstNode(ExprType.Term, node, info: CurrentToken().Content, location: CurrentToken().Location);
+                node = new AstNode(AstType.Term, node, info: CurrentToken().Content, location: CurrentToken().Location);
                 tokens.MoveNext();
                 node.Right = Term();
             }
@@ -900,13 +801,13 @@ namespace Compiler
             }
             if (CurrentToken().TokenType == TokenType.ID)
             {
-                AstNode node = new AstNode(ExprType.UnknownID, null, null, CurrentToken().Content, CurrentToken().Location);
+                AstNode node = new AstNode(AstType.UnknownID, null, null, CurrentToken().Content, CurrentToken().Location);
                 tokens.MoveNext();
                 return node;
             }
             else if (CurrentToken().TokenType == TokenType.NUM)
             {
-                AstNode node = new AstNode(ExprType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
+                AstNode node = new AstNode(AstType.NUM, null, null, CurrentToken().Content, CurrentToken().Location);
                 tokens.MoveNext();
                 return node;
             }
@@ -929,7 +830,7 @@ namespace Compiler
             {
                 return null;
             }
-            AstNode node = new AstNode(ExprType.Condition, CurrentToken().Location);
+            AstNode node = new AstNode(AstType.Condition, CurrentToken().Location);
             try
             {
 
@@ -994,6 +895,111 @@ namespace Compiler
         #endregion
 
         #region ---Utils and Member---
+
+        private void StaticCodeAnalysis(Env preenv, AstNode subproc) //递归分程序解析
+        {
+            if (subproc == null)
+                return;
+
+            try
+            {
+                Env env = new Env(preenv);
+                AstNode constDefine = subproc.Left.Left.Left,
+                    varDefine = subproc.Left.Left.Right,
+                    procDefine = subproc.Left.Right,
+                    stmt = subproc.Right;
+                List<AstNode> consts = constDefine.Info as List<AstNode>,
+                    vars = varDefine.Info as List<AstNode>,
+                    procs = procDefine.Info as List<AstNode>;
+
+                /*
+                 * -1: keys
+                 *  0: ok
+                 *  1: unknown
+                 *  2: already exist
+                 */
+                if (consts != null)
+                {
+                    foreach (var i in consts)
+                    {
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                        }
+                    }
+                }
+                if (vars != null)
+                {
+                    foreach (var i in vars)
+                    {
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                        }
+                    }
+                }
+                //递归解析
+                if (procs != null)
+                {
+                    foreach (var i in procs)
+                    {
+                        int res = env.Reserve(i);
+                        switch (res)
+                        {
+                            case -1:
+                                ErrorMsg.Add($"'{i.Left.Info}' is reserved,it can't be id", i.Location);
+                                break;
+                            case 1:
+                                ErrorMsg.Add($"Unknown token '{i.Left.Info}'", i.Location);
+                                break;
+                            case 2:
+                                ErrorMsg.Add($"Unexpected token '{i.Left.Info}', any identifier can only be declared once", i.Location);
+                                break;
+                            case 0:
+                                StaticCodeAnalysis(env, i.Right);
+                                break;
+                        }
+                    }
+                }
+                if (stmt != null)
+                {
+                    if (stmt.Type == AstType.Statements)
+                    {
+                        foreach (var i in (List<AstNode>)stmt.Info)
+                        {
+                            VerifyIdentifier(env, i);
+                        }
+                    }
+                    else
+                    {
+                        VerifyIdentifier(env, stmt);
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
         private void VerifyIdentifier(Env env, AstNode stmt)//基本检查，并且把节点指向最开始声明的节点
         {
             if (stmt == null)
@@ -1004,17 +1010,17 @@ namespace Compiler
             {
                 switch (stmt.Type)
                 {
-                    case ExprType.Assign:
+                    case AstType.Assign:
                         AstNode id = env.Find((string)stmt.Left.Info);
                         if (id == null)
                         {
                             ErrorMsg.Add($"Unknown Token '{stmt.Left.Info}',it needs declaring", stmt.Location);
                         }
-                        else if (id.Type == ExprType.Const || id.Type == ExprType.ProcDefine)
+                        else if (id.Type == AstType.Const || id.Type == AstType.ProcDefine)
                         {
                             ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", id.Location);
                         }
-                        else if (id.Type != ExprType.Var)
+                        else if (id.Type != AstType.Var)
                         {
                             ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not variable", id.Location);
                         }
@@ -1025,14 +1031,14 @@ namespace Compiler
                         }
                         TraversalExpr(env, stmt.Right, stmt, false);
                         break;
-                    case ExprType.Call:
+                    case AstType.Call:
                         //注意只能call同级分程序
                         id = env.FindNoRecursion((string)stmt.Info);
                         if (id == null)
                         {
                             ErrorMsg.Add($"Unknown Token '{stmt.Info}',it needs declaring", stmt.Location);
                         }
-                        else if (id.Type != ExprType.ProcDefine)
+                        else if (id.Type != AstType.ProcDefine)
                         {
                             ErrorMsg.Add($"'{id.Info}' can't be called,it's not procedure", stmt.Location);
                         }
@@ -1041,13 +1047,13 @@ namespace Compiler
                             stmt.Left = id;
                         }
                         break;
-                    case ExprType.IfElse:
+                    case AstType.IfElse:
                         AstNode _if = stmt.Left, _else = stmt.Right;
                         TraversalExpr(env, _if.Left, _if, true);
                         VerifyIdentifier(env, _if.Right);
                         VerifyIdentifier(env, _else);
                         break;
-                    case ExprType.Read:
+                    case AstType.Read:
                         List<AstNode> tokenlist = (List<AstNode>)stmt.Info;
                         for (int i = 0; i < tokenlist.Count; ++i)
                         {
@@ -1056,7 +1062,7 @@ namespace Compiler
                             {
                                 ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
                             }
-                            else if (id.Type != ExprType.Var)
+                            else if (id.Type != AstType.Var)
                             {
                                 ErrorMsg.Add($"'{id.Left.Info}' can't be assigned,it's not variable", stmt.Location);
                             }
@@ -1067,7 +1073,7 @@ namespace Compiler
                             }
                         }
                         break;
-                    case ExprType.Write:
+                    case AstType.Write:
                         tokenlist = (List<AstNode>)stmt.Info;
                         for (int i = 0; i < tokenlist.Count; ++i)
                         {
@@ -1076,7 +1082,7 @@ namespace Compiler
                             {
                                 ErrorMsg.Add($"Unknown Token '{tokenlist[i].Info}',it needs declaring", stmt.Location);
                             }
-                            else if (id.Type != ExprType.Var && id.Type != ExprType.Const)
+                            else if (id.Type != AstType.Var && id.Type != AstType.Const)
                             {
                                 ErrorMsg.Add($"'{id.Left.Info}' is illegal,Write() requires const or var id", stmt.Location);
                             }
@@ -1086,7 +1092,7 @@ namespace Compiler
                             }
                         }
                         break;
-                    case ExprType.RepeatUntil:
+                    case AstType.RepeatUntil:
                         VerifyIdentifier(env, stmt.Right);
                         if (stmt.Left == null)
                         {
@@ -1097,7 +1103,7 @@ namespace Compiler
                             TraversalExpr(env, stmt.Left, stmt, true);
                         }
                         break;
-                    case ExprType.WhileDo:
+                    case AstType.WhileDo:
                         VerifyIdentifier(env, stmt.Right);
                         if (stmt.Left == null)
                         {
@@ -1108,7 +1114,7 @@ namespace Compiler
                             TraversalExpr(env, stmt.Left, stmt, true);
                         }
                         break;
-                    case ExprType.Statements:
+                    case AstType.Statements:
                         var list = (List<AstNode>)stmt.Info;
                         foreach (var i in list)
                         {
@@ -1124,7 +1130,7 @@ namespace Compiler
         private void TraversalExpr(Env env, AstNode start, AstNode prev, bool ifLeft)
         {
             Queue<AstNode> q = new Queue<AstNode>();
-            if (start.Type == ExprType.UnknownID || start.Type == ExprType.Var)
+            if (start.Type == AstType.UnknownID || start.Type == AstType.Var)
             {
                 var node = env.Find((string)start.Info);
                 var type = node?.Type;
@@ -1132,7 +1138,7 @@ namespace Compiler
                 {
                     ErrorMsg.Add($"Unknown Token '{start.Info}',it needs declaring", start.Location);
                 }
-                else if (ExprType.Var == type)
+                else if (AstType.Var == type)
                 {
                     if (ifLeft)
                     {
@@ -1143,11 +1149,11 @@ namespace Compiler
                         prev.Right = node;
                     }
                 }
-                else if (ExprType.ProcDefine == type)
+                else if (AstType.ProcDefine == type)
                 {
                     ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", start.Location);
                 }
-                else if (ExprType.Const == type)
+                else if (AstType.Const == type)
                 {
                     if (ifLeft)
                     {
@@ -1167,7 +1173,7 @@ namespace Compiler
                 {
                     continue;
                 }
-                if (i.Left?.Type == ExprType.UnknownID || i.Left?.Type == ExprType.Var)
+                if (i.Left?.Type == AstType.UnknownID || i.Left?.Type == AstType.Var)
                 {
                     var node = env.Find((string)i.Left.Info);
                     var type = node?.Type;
@@ -1175,20 +1181,20 @@ namespace Compiler
                     {
                         ErrorMsg.Add($"Unknown Token '{i.Left.Info}',it needs declaring", i.Location);
                     }
-                    else if (ExprType.Var == type)
+                    else if (AstType.Var == type)
                     {
                         i.Left = node;
                     }
-                    else if (ExprType.ProcDefine == type)
+                    else if (AstType.ProcDefine == type)
                     {
                         ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Location);
                     }
-                    else if (ExprType.Const == type)
+                    else if (AstType.Const == type)
                     {
                         i.Left = node;
                     }
                 }
-                if (i.Right?.Type == ExprType.UnknownID || i.Right?.Type == ExprType.Var)
+                if (i.Right?.Type == AstType.UnknownID || i.Right?.Type == AstType.Var)
                 {
                     var node = env.Find((string)i.Right.Info);
                     var type = node?.Type;
@@ -1196,15 +1202,15 @@ namespace Compiler
                     {
                         ErrorMsg.Add($"Unknown Token '{i.Info}',it needs declaring", i.Location);
                     }
-                    else if (ExprType.Var == type)
+                    else if (AstType.Var == type)
                     {
                         i.Right = node;
                     }
-                    else if (ExprType.ProcDefine == type)
+                    else if (AstType.ProcDefine == type)
                     {
                         ErrorMsg.Add($"Procedure name '{node.Info}' can't be part of expression", i.Location);
                     }
-                    else if (ExprType.Const == type)
+                    else if (AstType.Const == type)
                     {
                         i.Right = node;
                     }
@@ -1263,98 +1269,9 @@ namespace Compiler
         }
 
         private Enumerator<Token> tokens;
-        public ErrorMsgList ErrorMsg;
         private HashSet<string> Keys;
         private List<Token> SkipControlList;
         private AstNode AstTree;
         #endregion
-    }
-
-    public enum ExprType
-    {
-        Define,
-        IdDefine,
-        ConstDefine,
-        VarDefine,
-        Const,
-        Var,
-        ProcDefine,// Procedure
-        ProcsDefine,// Procedures
-        Statement,
-        Statements,
-        Expr,
-        Assign,
-        Term,
-        Condition,
-        IfElse, // left is a node contains condition and action, right is 'else' action(may be null)
-        WhileDo,
-        Call,
-        RepeatUntil,
-        Read,
-        Write,
-        NUM,
-        VarID,   //object is string  , and is its name
-        ConstID,
-        ProcID,
-        UnknownID,
-        SubProgram,
-        Minus
-    }
-
-    public class Env
-    {
-        protected Env prev;
-        protected Dictionary<string, AstNode> dict;
-        public static HashSet<string> Keys;
-        public static void Initial()
-        {
-            Keys = new HashSet<string>(new string[] { "procedure", "if", "then", "else", "while", "do", "call", "begin", "repeat", "until", "read", "write", "var", "const", "end", "odd" });
-        }
-        public Env(Env prevEnv)
-        {
-            prev = prevEnv;
-            dict = new Dictionary<string, AstNode>();
-        }
-        /*
-         * -1: keys
-         *  0: ok
-         *  1: unknown
-         *  2: already exist
-         */
-        public int Reserve(AstNode node)
-        {
-            if (node.Type == ExprType.Var || node.Type == ExprType.Const || node.Type == ExprType.ProcDefine)
-            {
-                string name = (string)node.Left.Info;
-                if (Keys.Contains(name))
-                {
-                    return -1;
-                }
-                if (dict.ContainsKey(name))
-                {
-                    return 2;
-                }
-                dict.Add((string)node.Left.Info, node);
-                return 0;
-            }
-            else
-            {
-                return 1;
-            }
-        }
-
-        public AstNode Find(string ID)
-        {
-            for (var e = this; e != null; e = e.prev)
-            {
-                if (e.dict.ContainsKey(ID)) return e.dict[ID];
-            }
-            return null;
-        }
-        public AstNode FindNoRecursion(string ID)
-        {
-            if (dict.ContainsKey(ID)) return dict[ID];
-            return null;
-        }
     }
 }

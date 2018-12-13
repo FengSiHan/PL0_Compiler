@@ -17,11 +17,11 @@ namespace PL0Editor
         {
             switch (Node.Type)
             {
-                case ExprType.Var:
-                case ExprType.Const:
+                case AstType.Var:
+                case AstType.Const:
                     Temp.Append(Node.Left.Info);
                     break;
-                case ExprType.NUM:
+                case AstType.NUM:
                     Temp.Append(Node.Info);
                     break;
                 default:
@@ -35,16 +35,16 @@ namespace PL0Editor
         {
             switch (Node.Type)
             {
-                case ExprType.SubProgram:
+                case AstType.SubProgram:
                     GenerateCode(Node.Left, Node, Indent);
                     GenerateCode(Node.Right, Node, Indent);
                     break;
-                case ExprType.Define:
-                case ExprType.IdDefine:
+                case AstType.Define:
+                case AstType.IdDefine:
                     GenerateCode(Node.Left, Node, Indent);
                     GenerateCode(Node.Right, Node, Indent);
                     break;
-                case ExprType.ConstDefine:
+                case AstType.ConstDefine:
                     List<AstNode> list = Node.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -61,7 +61,7 @@ namespace PL0Editor
                     }
                     Temp.Append($"{list[list.Count - 1].Left.Info} = {list[list.Count - 1].Right.Info};\n");
                     break;
-                case ExprType.VarDefine:
+                case AstType.VarDefine:
                     list = Node.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -78,7 +78,7 @@ namespace PL0Editor
                     }
                     Temp.Append($"{list[list.Count - 1].Left.Info};\n");
                     break;
-                case ExprType.ProcsDefine:
+                case AstType.ProcsDefine:
                     list = Node.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -95,9 +95,9 @@ namespace PL0Editor
                         Temp.Append(";\n");
                     }
                     break;
-                case ExprType.Statements:
+                case AstType.Statements:
                     list = Node.Info as List<AstNode>;
-                    if (Prev?.Type != ExprType.RepeatUntil)
+                    if (Prev?.Type != AstType.RepeatUntil)
                     {
                         for (int i = 0; i < Indent; ++i)
                         {
@@ -112,7 +112,7 @@ namespace PL0Editor
                         Temp.Append(";\n");
                     }
                     GenerateCode(list[list.Count - 1], Node, Indent);
-                    if (Prev?.Type != ExprType.RepeatUntil)
+                    if (Prev?.Type != AstType.RepeatUntil)
                     {
                         Temp.Append('\n');
                         for (int i = 0; i < Indent - 1; ++i)
@@ -122,7 +122,7 @@ namespace PL0Editor
                         Temp.Append("end");
                     }
                     break;
-                case ExprType.Assign:
+                case AstType.Assign:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
@@ -130,14 +130,14 @@ namespace PL0Editor
                     Temp.Append($"{Node.Left.Left.Info} := ");
                     TranslateExpr(Node.Right);
                     break;
-                case ExprType.Call:
+                case AstType.Call:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
                     }
                     Temp.Append($"call {Node.Info}");
                     break;
-                case ExprType.IfElse:
+                case AstType.IfElse:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
@@ -167,7 +167,7 @@ namespace PL0Editor
                         GenerateCode(Node.Right, Node, Indent + 1);
                     }
                     break;
-                case ExprType.RepeatUntil:
+                case AstType.RepeatUntil:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
@@ -192,7 +192,7 @@ namespace PL0Editor
                         TranslateExpr(Node.Left.Right);
                     }
                     break;
-                case ExprType.WhileDo:
+                case AstType.WhileDo:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
@@ -217,7 +217,7 @@ namespace PL0Editor
                     Temp.Append("do\n");
                     GenerateCode(Node.Right, Node, Indent + 1);
                     break;
-                case ExprType.Read:
+                case AstType.Read:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);
@@ -231,7 +231,7 @@ namespace PL0Editor
                     }
                     Temp.Append($"{param[param.Count - 1].Left.Info})");
                     break;
-                case ExprType.Write:
+                case AstType.Write:
                     for (int i = 0; i < Indent; ++i)
                     {
                         Temp.Append(IndentString);

@@ -6,18 +6,9 @@ using System.Threading.Tasks;
 
 namespace Compiler
 {
-    public enum TokenType
-    {
-        ID,
-        NUM,
-        STRING,
-        OP,
-        BRACKET,
-        SEMICOLON,
-        ASSIGN,
-        PERIOD,
-        COMMA
-    }
+    /// <summary>
+    /// 词法分析器，Scan返回token流(数组)
+    /// </summary>
     public class Lexer
     {
         public IEnumerable<Token> Scan()

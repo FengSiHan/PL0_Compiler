@@ -15,7 +15,7 @@ namespace Compiler
             string code = File.ReadAllText($"../../test.pl0");
             Parser parser = new Parser();
             parser.Parse(code);
-            parser.PrintErrorMsg();
+            Console.WriteLine(parser.GetErrorMsgString());
             if (parser.ErrorMsg.Count() != 0)
             {
                 Console.WriteLine("按任意键继续");
@@ -23,19 +23,19 @@ namespace Compiler
             }
             ILGenerator ilg = new ILGenerator();
             ilg.GenerateCode(code, 0);
-            ilg.PrintCode();
+            Console.WriteLine(ilg.GetCodeString());
             Console.WriteLine("按任意键继续");
             Console.ReadKey();
 
             PCodeGeneraotr pcg = new PCodeGeneraotr();
             pcg.GenerateCode(code, 0);
-            pcg.PrintCode();
+            Console.WriteLine(pcg.GetPCodeString());
             Console.WriteLine("按任意键开始执行");
             Console.ReadKey();
 
-
             VirtualMachine vm = new VirtualMachine();
             vm.Run(code, 0);
+
         }
     }
 }

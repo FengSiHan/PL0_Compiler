@@ -12,9 +12,9 @@ namespace Compiler
     /// </summary>
     public class ILGenerator
     {
-        public void PrintError()
+        public string GetErrorMsgString()
         {
-            parser.PrintErrorMsg();
+            return parser.GetErrorMsgString();
         }
 
         /// <summary>
@@ -75,134 +75,6 @@ namespace Compiler
             }
         }
 
-        /// <summary>
-        /// 打印四元式
-        /// </summary>
-        public void PrintCode()
-        {
-            if (!Done)
-            {
-                Console.WriteLine("Please generate intermediate code first");
-                return;
-            }
-            if (NumOfError != 0)
-            {
-                PrintError();
-                Console.WriteLine("Code needs correcting before generating code");
-                return;
-            }
-            int index = 0;
-            foreach (QuadrupleNode i in CodeSeg)
-            {
-                if (i == null)
-                {
-                    continue;
-                }
-                Console.Write(string.Format("{0,-3}-> ", index++));
-                Console.Write(string.Format("{0,-6} ", Enum.GetName(i.Type.GetType(), i.Type)));
-                if (i.Type == QuadrupleType.Return)
-                {
-                    Console.WriteLine();
-                    continue;
-                }
-                else if (i.Type == QuadrupleType.JMP)
-                {
-                    Console.WriteLine(i.Result);
-                    continue;
-                }
-                if (i.Type == QuadrupleType.Write || i.Type == QuadrupleType.Read)
-                {
-                    ArrayList list = (ArrayList)i.Arg1;
-                    for (int k = 0; k < list.Count; ++k)
-                    {
-                        if (list[k] is int)
-                        {
-                            Console.Write($"t{list[k]}");
-                        }
-                        else if (list[k] is QuadrupleNode)
-                        {
-                            var t = list[k] as QuadrupleNode;
-                            if (t.Type == QuadrupleType.Var)
-                            {
-                                Console.Write(t.Value);
-                            }
-                        }
-                        else
-                        {
-                            Console.Write(list[k]);
-                        }
-                        if (k != list.Count - 1)
-                        {
-                            Console.Write(", ");
-                        }
-                    }
-                    Console.WriteLine();
-                    continue;
-                }
-                else if (i.Type == QuadrupleType.Call)
-                {
-                    Console.WriteLine(i.Result);
-                    continue;
-                }
-                else if (i.Arg1 is QuadrupleNode)
-                {
-                    var t = i.Arg1 as QuadrupleNode;
-                    if (t.Type == QuadrupleType.Var)
-                    {
-                        Console.Write(t.Value);
-                    }
-                    else Console.Write($"t{t.Result}");
-                }
-                else if (i.Arg1 is string && ((string)i.Arg1).StartsWith("#"))
-                {
-                    Console.Write(i.Arg1);
-                }
-                else if (i.Arg1 != null)
-                {
-                    Console.Write($"t{i.Arg1}");
-                }
-                Console.Write(", ");
-                if (i.Arg2 is QuadrupleNode)
-                {
-                    var t = i.Arg2 as QuadrupleNode;
-                    if (t.Type == QuadrupleType.Var)
-                    {
-                        Console.Write(t.Value);
-                    }
-                    else
-                    {
-                        Console.Write($"t{t.Result}");
-                    }
-                }
-                else if (i.Arg2 is string && ((string)i.Arg2).StartsWith("#"))
-                {
-                    Console.Write(i.Arg2);
-                }
-                else if (i.Arg2 != null)
-                {
-                    Console.Write($"t{i.Arg2}");
-                }
-                if (Enum.GetName(i.Type.GetType(), i.Type).StartsWith("J") == false && i.Result != null)
-                {
-                    int value = (int)i.Result;
-                    if (value < 0)
-                    {
-                        Console.Write($", {VarSeg[-value].Value}");
-                    }
-                    else
-                    {
-                        Console.Write($", t{i.Result}");
-                    }
-                }
-                else if (i.Result != null)
-                {
-                    if (i.Result > 0)
-                        Console.Write(", " + i.Result);
-                }
-                Console.WriteLine();
-            }
-        }
-
         public string GetCodeString()
         {
             StringBuilder sb = new StringBuilder();
@@ -213,7 +85,6 @@ namespace Compiler
             }
             if (NumOfError != 0)
             {
-                PrintError();
                 sb.Append("Code needs correcting before generating code\n");
                 return sb.ToString();
             }
@@ -359,7 +230,7 @@ namespace Compiler
         /// </summary>
         private bool Done;
 
-        internal void GetCode(ref List<QuadrupleNode> Code, ref List<QuadrupleNode> Var)
+        internal void GetInfo(ref List<QuadrupleNode> Code, ref List<QuadrupleNode> Var)
         {
             if (!Done)
             {
@@ -368,11 +239,6 @@ namespace Compiler
             }
             Code = CodeSeg;
             Var = VarSeg;
-        }
-
-        internal int GetCodeEntrance()
-        {
-            return CodeEntrance;
         }
 
         private void Parse(string text)
@@ -414,15 +280,15 @@ namespace Compiler
 
         private Object GetArg(AstNode node, int level)
         {
-            if (node.Type == ExprType.NUM)
+            if (node.Type == AstType.NUM)
             {
                 return "#" + node.Info;
             }
-            else if (node.Type == ExprType.Var)
+            else if (node.Type == AstType.Var)
             {
                 return new QuadrupleNode(VarSeg[node.Offset], level);
             }
-            else if (node.Type == ExprType.Const)
+            else if (node.Type == AstType.Const)
             {
                 return "#" + node.Right.Info;
             }
@@ -440,7 +306,7 @@ namespace Compiler
             }
             switch (now.Type)
             {
-                case ExprType.SubProgram:
+                case AstType.SubProgram:
                     GetQuadruples(now.Left, Level);
                     if (CodeEntrance == -1)//为1尚未被赋值
                     {
@@ -459,15 +325,15 @@ namespace Compiler
                         CodeSeg.Add(new QuadrupleNode(QuadrupleType.Return));
                     }
                     break;
-                case ExprType.Define:
+                case AstType.Define:
                     GetQuadruples(now.Left, Level);
                     GetQuadruples(now.Right, Level + 1);
                     break;
-                case ExprType.IdDefine:
+                case AstType.IdDefine:
                     GetQuadruples(now.Left, Level);
                     GetQuadruples(now.Right, Level);
                     break;
-                case ExprType.ConstDefine:
+                case AstType.ConstDefine:
                     List<AstNode> list = now.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -479,7 +345,7 @@ namespace Compiler
                         ConstSeg.Add(Convert.ToInt32(i.Right.Info));
                     }
                     break;
-                case ExprType.VarDefine:
+                case AstType.VarDefine:
                     list = now.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -499,7 +365,7 @@ namespace Compiler
                         VarSeg.Add(var);
                     }
                     break;
-                case ExprType.ProcsDefine:
+                case AstType.ProcsDefine:
                     list = now.Info as List<AstNode>;
                     if (list == null)
                     {
@@ -521,14 +387,14 @@ namespace Compiler
                         FreeAllTempData();
                     }
                     break;
-                case ExprType.Statements:
+                case AstType.Statements:
                     list = now.Info as List<AstNode>;
                     foreach (var i in list)
                     {
                         GetQuadruples(i, Level);
                     }
                     break;
-                case ExprType.Assign:
+                case AstType.Assign:
                     QuadrupleNode assign = new QuadrupleNode(QuadrupleType.Assign, new QuadrupleNode(VarSeg[now.Left.Offset], Level))
                     {
                         Arg2 = GetArg(now.Right, Level)
@@ -540,13 +406,13 @@ namespace Compiler
                     }
                     CodeSeg.Add(assign);
                     break;
-                case ExprType.Call:
+                case AstType.Call:
                     CodeSeg.Add(new QuadrupleNode(QuadrupleType.Call)
                     {
                         Result = ProcedureSeg[now.Left.Offset].Offset//跳转地址
                     });
                     break;
-                case ExprType.IfElse:
+                case AstType.IfElse:
                     QuadrupleNode node = new QuadrupleNode(GetOppositeJumpInstruction(now.Left.Left.Info))
                     {
                         Arg1 = GetArg(now.Left.Left.Left, Level)
@@ -586,7 +452,7 @@ namespace Compiler
                     }
                     FreeAllTempData();
                     break;
-                case ExprType.RepeatUntil:
+                case AstType.RepeatUntil:
                     node = new QuadrupleNode(GetOppositeJumpInstruction(now.Left.Info))
                     {
                         Result = CodeSeg.Count//当前位置
@@ -611,7 +477,7 @@ namespace Compiler
                     CodeSeg.Add(node);
                     FreeAllTempData();
                     break;
-                case ExprType.WhileDo:
+                case AstType.WhileDo:
                     object op = now.Left.Info;
                     node = new QuadrupleNode(GetOppositeJumpInstruction(op))
                     {
@@ -661,7 +527,7 @@ namespace Compiler
                     node.Result = CodeSeg.Count;
                     FreeAllTempData();
                     break;
-                case ExprType.Expr:
+                case AstType.Expr:
                     var node1 = new QuadrupleNode(GetOperator(now.Info))
                     {
                         Arg2 = GetArg(now.Right, Level)
@@ -671,7 +537,7 @@ namespace Compiler
                         GetQuadruples(now.Right, Level);
                         node1.Arg2 = ResultIndex;
                     }
-                    if (now.Left.Type == ExprType.Minus)// -x -> 0 - x
+                    if (now.Left.Type == AstType.Minus)// -x -> 0 - x
                     {
                         node = new QuadrupleNode(QuadrupleType.Sub)
                         {
@@ -700,7 +566,7 @@ namespace Compiler
                     ResultIndex = GetTemp();
                     node1.Result = ResultIndex;
                     break;
-                case ExprType.Term:
+                case AstType.Term:
                     node = new QuadrupleNode(GetOperator(now.Info))
                     {
                         Arg2 = GetArg(now.Right, Level)
@@ -720,7 +586,7 @@ namespace Compiler
                     ResultIndex = (int)node.Result;
                     CodeSeg.Add(node);
                     break;
-                case ExprType.Read: //需要自己平衡栈,Write & Read
+                case AstType.Read: //需要自己平衡栈,Write & Read
                     ArrayList param = new ArrayList();
                     foreach (var i in (List<AstNode>)now.Info)
                     {
@@ -729,20 +595,20 @@ namespace Compiler
                     }
                     CodeSeg.Add(new QuadrupleNode(QuadrupleType.Read, param));
                     break;
-                case ExprType.Write:
+                case AstType.Write:
                     param = new ArrayList();
                     foreach (var i in (List<AstNode>)now.Info)
                     {
-                        if (i.Type == ExprType.NUM)
+                        if (i.Type == AstType.NUM)
                         {
                             param.Add(i.Info);
                         }
-                        else if (i.Type == ExprType.Var)
+                        else if (i.Type == AstType.Var)
                         {
                             var n = new QuadrupleNode(VarSeg[i.Offset], Level);
                             param.Add(n);
                         }
-                        else if (i.Type == ExprType.Const)
+                        else if (i.Type == AstType.Const)
                         {
                             param.Add("#" + ConstSeg[i.Offset]);
                         }

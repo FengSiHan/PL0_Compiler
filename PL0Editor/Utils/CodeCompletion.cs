@@ -115,7 +115,7 @@ namespace PL0Editor
                 {
                     if (stmts.Count > 0)
                     {
-                        if (stmt.Type == ExprType.Statements)
+                        if (stmt.Type == AstType.Statements)
                         {
                             try
                             {
@@ -144,12 +144,12 @@ namespace PL0Editor
                     {
                         switch (node.Type)
                         {
-                            case ExprType.WhileDo:
-                            case ExprType.RepeatUntil:
+                            case AstType.WhileDo:
+                            case AstType.RepeatUntil:
                                 env.End = node.Location;
                                 node = node.Right;
                                 break;
-                            case ExprType.IfElse:
+                            case AstType.IfElse:
                                 if (node.Right != null)
                                 {
                                     env.End = node.Location;
@@ -161,7 +161,7 @@ namespace PL0Editor
                                     node = node.Left.Right;
                                 }
                                 break;
-                            case ExprType.Statements:
+                            case AstType.Statements:
                                 List<AstNode> list = node.Info as List<AstNode>;
                                 if (list.Count > 0)
                                 {

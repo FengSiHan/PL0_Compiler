@@ -9,6 +9,7 @@ namespace Compiler
     public class SyntaxErrorException : Exception
     {
         public Position Location;
+
         public SyntaxErrorException(string msg, Position pos) : base(msg)
         {
             Location = pos;

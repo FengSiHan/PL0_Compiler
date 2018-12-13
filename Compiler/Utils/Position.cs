@@ -11,23 +11,25 @@ namespace Compiler
     {
         public int Row { get; set; }
         public int Col { get; set; }
-        public Position()
-        {
 
-        }
+        public Position() { }
+
         public Position(int row, int col)
         {
             Row = row;
             Col = col;
         }
+
         public override string ToString()
         {
             return $"At Row {Row},Col {Col}";
         }
+
         public override int GetHashCode()
         {
             return Row.GetHashCode() ^ Col.GetHashCode();
         }
+
         public override bool Equals(object obj)
         {
             Position loc = obj as Position;

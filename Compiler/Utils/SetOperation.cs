@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Compiler
 {
-    //由于对LINQ效率持怀疑态度，故写了这个类
+    //由于对LINQ+List的效率持怀疑态度，故写了这个类
     public static class SetOperation
     {
         public static List<T> Intersect<T>(this List<T> arg1, List<T> arg2)
@@ -25,6 +25,7 @@ namespace Compiler
             }
             return result;
         }
+
         public static List<T> Union<T>(this List<T> arg1, List<T> arg2)
         {
             HashSet<T> set = new HashSet<T>(arg1);
@@ -34,10 +35,12 @@ namespace Compiler
             }
             return new List<T>(set);
         }
+
         public static List<T> Distinct<T>(this List<T> arg)
         {
             return new List<T>(new HashSet<T>(arg));
         }
+
         public static List<T> Distinct<T>(this List<T> arg1, List<T> arg2)
         {
             HashSet<T> set = new HashSet<T>(arg1);
@@ -51,6 +54,7 @@ namespace Compiler
             }
             return diff;
         }
+
         /// <summary>
         /// 是否有不同元素成员,有则返回true，无则false
         /// </summary>
@@ -71,6 +75,7 @@ namespace Compiler
             }
             return false;
         }
+
         public static List<T> Except<T>(this List<T> arg1, List<T> arg2)
         {
             HashSet<T> set = new HashSet<T>(arg1);
@@ -83,6 +88,7 @@ namespace Compiler
             }
             return new List<T>(set);
         }
+
         public static bool ElementEqual<T>(this List<T> arg1, List<T> arg2, Func<T, T, int> cmp = null) where T : IEquatable<T>
         {
             if (arg1.Count != arg2.Count)
@@ -112,10 +118,12 @@ namespace Compiler
             }
             return true;
         }
+
         public static List<T> ToList<T>(this List<T> list)
         {
             return new List<T>(list);
         }
+
         /// <summary>
         /// 返回arg1和arg2的关系（参数中不能有重复元素）
         /// 1为arg1真包含arg2, 2为arg2真包含arg1,3为相等 4为部分交叉或者独立

@@ -10,37 +10,48 @@ namespace Compiler
     public class ErrorMsgList
     {
         public List<ErrorInfo> Errors { get; }
+
         public ErrorMsgList(int MaxErrors)
         {
             Errors = new List<ErrorInfo>(MaxErrors);
         }
+
         public void Add(string msg, int row, int col)
         {
             Errors.Add(new ErrorInfo(msg, row, col));
         }
+
         public void Add(string msg, Position pos)
         {
             Errors.Add(new ErrorInfo(msg, pos));
         }
+
         public IEnumerator<ErrorInfo> GetEnumerator()
         {
             return Errors.GetEnumerator();
         }
+
         public void Add(SyntaxErrorException e)
         {
             Add(e.Message, e.Location);
         }
-        public void PrintErrorMsg()
+
+        public string GetErrorMsgString()
         {
+            StringBuilder sb = new StringBuilder();
             foreach (var i in Errors)
             {
-                Console.WriteLine(i);
+                sb.Append(i).Append('\n');
             }
+            return sb.ToString();
         }
+
         public void Clear()
         {
             Errors.Clear();
         }
+
+
         public void SortErrorMsgByLine()
         {
             try
@@ -53,20 +64,25 @@ namespace Compiler
 
             }
         }
+
         public int Count()
         {
             return Errors.Count;
         }
     }
+
     public class ErrorInfo : ObservableCollection<ErrorInfo>, IComparable
     {
         public string Message { get; set; }
+
         public Position Location { get; set; }
+
         public ErrorInfo(string msg, int row, int col)
         {
             Message = msg;
             Location = new Position(row, col);
         }
+
         public ErrorInfo(string msg, Position pos)
         {
             Message = msg;
