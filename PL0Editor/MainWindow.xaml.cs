@@ -46,7 +46,7 @@ namespace PL0Editor
                 CodeEditor.ShowLineNumbers = true;
                 CodeEditor.Options.HighlightCurrentLine = true;
                 CodeEditor.Options.ConvertTabsToSpaces = true;
-
+                CodeEditor.Text = "\n.";
 
                 //后台代码检查线程
                 AnalyzeCodeError();
@@ -155,25 +155,25 @@ namespace PL0Editor
                     if (char.IsLetterOrDigit(e.Text[0]))
                     {
                         //判断是否在var和const声明区域
-                        //if (CodeEditor.Text.Length > 0)
-                        //{
-                        //    int end = CodeEditor.TextArea.Caret.Offset, k;
-                        //    if (end >= CodeEditor.Text.Length) end = CodeEditor.Text.Length - 1;
-                        //    k = end;
-                        //    while (k > -1 && CodeEditor.Text[k] != ';')
-                        //    {
-                        //        --k;
-                        //    }
-                        //    if (k < 0) k = 0;
-                        //    string loc = CodeEditor.Text.Substring(k, end - k + 1);
-                        //    if (loc.Contains("const") || loc.Contains("var"))
-                        //    {
-                        //        e.Handled = true;
-                        //        completionWindow.Close();
-                        //        completionWindow = null;
-                        //        return;
-                        //    }
-                        //}
+                        if (CodeEditor.Text.Length > 0)
+                        {
+                            int end = CodeEditor.TextArea.Caret.Offset, k;
+                            if (end >= CodeEditor.Text.Length) end = CodeEditor.Text.Length - 1;
+                            k = end;
+                            while (k > -1 && CodeEditor.Text[k] != ';')
+                            {
+                                --k;
+                            }
+                            if (k < 0) k = 0;
+                            string loc = CodeEditor.Text.Substring(k, end - k + 1);
+                            if (loc.Contains("const") || loc.Contains("var"))
+                            {
+                                e.Handled = true;
+                                completionWindow.Close();
+                                completionWindow = null;
+                                return;
+                            }
+                        }
                         while (start > -1 && char.IsLetterOrDigit(CodeEditor.Text[start]))
                         {
                             --start;

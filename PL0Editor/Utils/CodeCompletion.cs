@@ -30,6 +30,7 @@ namespace PL0Editor
         {
             try
             {
+                if (Code[Code.Length - 1] != '.') Code += '.';
                 Temp.Clear();
                 Global.Clear();
                 
