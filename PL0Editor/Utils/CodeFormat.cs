@@ -15,22 +15,25 @@ namespace PL0Editor
     {
         public void FormatCode(object sender, RoutedEventArgs e)
         {
+            Temp.Clear();
+            string SourceCode = CodeEditor.Text;
+            Parser parser = new Parser();
+            var root = parser.Parse(SourceCode);
+            if (parser.GetNumofErrors() > 0)
+            {
+                StatusContent.Text = "代码格式化之前请改正所有错误";
+                return;
+            }
+            GenerateCode(root, null, 0);
+            Temp.Append("\n.");
+            CodeEditor.Text = Temp.ToString();
             try
             {
-                Temp.Clear();
-                string SourceCode = CodeEditor.Text;
-                Parser parser = new Parser();
-                var root = parser.Parse(SourceCode);
-                if (parser.GetNumofErrors() > 0)
-                {
-                    StatusContent.Text = "代码格式化之前请改正所有错误";
-                    return;
-                }
-                GenerateCode(root, null, 0);
-                Temp.Append("\n.");
-                CodeEditor.Text = Temp.ToString();
+                
             }
-            catch (Exception) { }
+            catch (Exception ex) {
+
+            }
         }
         private void TranslateExpr(AstNode Node)
         {
@@ -129,12 +132,15 @@ namespace PL0Editor
                         Temp.Append("begin\n");
                         Indent++;
                     }
-                    for (int i = 0; i < list.Count - 1; ++i)
+                    if (list.Count != 0)
                     {
-                        GenerateCode(list[i], Node, Indent);
-                        Temp.Append(";\n");
+                        for (int i = 0; i < list.Count - 1; ++i)
+                        {
+                            GenerateCode(list[i], Node, Indent);
+                            Temp.Append(";\n");
+                        }
+                        GenerateCode(list[list.Count - 1], Node, Indent);
                     }
-                    GenerateCode(list[list.Count - 1], Node, Indent);
                     if (Prev?.Type != AstType.RepeatUntil)
                     {
                         Temp.Append('\n');

@@ -120,9 +120,6 @@ namespace Compiler
                     return;
                 case PCode.HALT:
                     return;
-                case PCode.INT:
-                    Push(Pop() + cmd.Arg);
-                    break;
                 case PCode.JMP:
                     EIP = cmd.Arg;
                     TempPool.Clear();

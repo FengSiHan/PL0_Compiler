@@ -92,6 +92,7 @@ namespace Compiler
         public bool Active;
         internal Optimize.Block Host; //所属基本块
         private int? hash;
+        public int Counter;//引用次数
         internal DAGNode(DAGType type, int SerialNumber, Optimize.Block host)
         {
             Tags = new List<DAGNode>();
@@ -111,6 +112,7 @@ namespace Compiler
             }
             hash = null;
             Host = host;
+            Counter = 0;
         }
         public void Add(DAGNode node)
         {
@@ -340,7 +342,6 @@ namespace Compiler
         LOD,
         STO,
         CAL,
-        INT,
         JMP,
         JPC,
         RED,

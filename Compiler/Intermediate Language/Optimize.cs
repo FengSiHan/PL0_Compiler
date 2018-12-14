@@ -385,7 +385,7 @@ namespace Compiler
                 foreach (var i in temp)//对不活跃变量的赋值可以去掉，并且递归删除其CurrentValue
                 {
                     DAG.Remove(i);
-                    if (i.Right?.Tags.Count <= 1)//只有当前节点引用了这个节点，可以删除
+                    if (i.Right?.Counter <= 1)//只有当前节点引用了这个节点，可以删除
                     {
                         deleteNode.Add(i.Right);
                     }
@@ -401,11 +401,11 @@ namespace Compiler
                     if (IsExpressionNode(node))
                     {
                         block.ExprSet.Remove(node);
-                        if (node.Left.Tags.Count <= 1) //只存在一个引用则删除
+                        if (node.Left.Counter <= 1) //只存在一个引用则删除
                         {
                             WorkQueue.Enqueue(node.Left);
                         }
-                        if (node.Right.Tags.Count <= 1)
+                        if (node.Right.Counter <= 1)
                         {
                             WorkQueue.Enqueue(node.Right);
                         }
@@ -533,6 +533,8 @@ namespace Compiler
                                 //无法解决成环调用，可以进一步推导
                                 //暂时搁置
                                 //此处调用成环，是由call指令导致的，推导call指令与运算指令位置可得删除哪边的表达式
+
+                                //另：后来想了下call不应该构造前驱后继
                                 if (block.Next.Contains(CommonExpr.Host) && CommonExpr.Host.Prev.Contains(block)) //说明block用call调用了CommonExpr.Host
                                 {
                                     var DAG = block.DAG;

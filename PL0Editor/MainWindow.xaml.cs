@@ -708,6 +708,7 @@ namespace PL0Editor
             catch (Exception ex)
             {
                 MessageBox.Show($"编译PCode的时候遇到错误 {ex.Message}", "错误");
+                disp = new DisplayWindow(this);
             }
         }
 

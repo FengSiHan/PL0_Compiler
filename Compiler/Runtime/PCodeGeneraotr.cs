@@ -60,31 +60,16 @@ namespace Compiler
                         {
                             case 1:
                             case 4:
-                                if (i.INS == PCode.LIT || i.INS == PCode.CAL)
-                                {
-                                    sb.Append("0, ");
-                                    sb.Append(i.Arg);
-                                    sb.Append('\n');
-                                }
-                                else
-                                {
-                                    sb.Append(i.Arg);
-                                    sb.Append('\n');
-                                }
+                                sb.Append("0, ");
+                                sb.Append(i.Arg);
+                                sb.Append('\n');
                                 break;
                             case 2:
                                 sb.Append($"t{i.Arg}\n");
                                 break;
                             case 3:
-                                if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.RED)
-                                {
-                                    sb.Append($"{i.Level}, {i.Offset}\n");
-                                }
-                                else
-                                {
-                                    sb.Append(VarSeg[i.Arg].Value);
-                                    sb.Append('\n');
-                                }
+                                //if (i.INS == PCode.LOD || i.INS == PCode.STO || i.INS == PCode.RED)
+                                sb.Append($"{i.Level}, {i.Offset}\n");
                                 break;
                             case 5:
                                 sb.Append($"0, {i.Arg}\n");
