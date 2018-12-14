@@ -68,32 +68,6 @@ namespace PL0Editor
                 };
                 CodeAnalysisTimer.Start();
                 codeCompletion.Analyze(new string(CodeEditor.Text.ToCharArray()));
-                //用于重置代码提示功能
-                DispatcherTimer ResetTimer = new DispatcherTimer();
-                ResetTimer.Interval = TimeSpan.FromSeconds(2);
-                ResetTimer.Tick += (i, j) =>
-                {
-                    this.Invoke(() =>
-                    {
-                        try
-                        {
-                            lock (completionWindow)
-                            {
-                                if (completionWindow != null && !completionWindow.IsVisible)
-                                {
-                                    completionWindow.Close();
-                                    completionWindow = null;
-                                    StatusContent.Text = "代码提示重新载入完成";
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-
-                        }
-                    });
-                };
-                ResetTimer.Start();
             }
             catch (Exception ex)
             {
@@ -105,7 +79,7 @@ namespace PL0Editor
         CompletionWindow completionWindow;
         Parser parser;
         CodeCompletion codeCompletion;
-        bool Saved;
+        bool Saved, BraceCompleted;
         string SavePath;
         bool KeydownHandled = true;
         Thread ConsoleThread;
@@ -149,7 +123,7 @@ namespace PL0Editor
             try
             {
                 int start = CodeEditor.SelectionStart - 1;
-                Saved = false;
+                Saved = BraceCompleted = false;
                 if (e.Text.Length != 0)
                 {
                     if (char.IsLetterOrDigit(e.Text[0]))
@@ -168,9 +142,7 @@ namespace PL0Editor
                             string loc = CodeEditor.Text.Substring(k, end - k + 1);
                             if (loc.Contains("const") || loc.Contains("var"))
                             {
-                                e.Handled = true;
-                                completionWindow.Close();
-                                completionWindow = null;
+                                completionWindow?.Close();
                                 return;
                             }
                         }
@@ -194,10 +166,18 @@ namespace PL0Editor
 
                         StartIndex = start;
                         Length = str.Length;
+                        if (completionWindow != null && !completionWindow.IsVisible)
+                        {
+                            completionWindow.Close();
+                        }
                         if (completionWindow == null)
                         {
                             completionWindow = new CompletionWindow(CodeEditor.TextArea);
                             completionWindow.CloseAutomatically = false;
+                            completionWindow.Closed += delegate
+                            {
+                                completionWindow = null;
+                            };
                         }
 
                         IList<ICompletionData> data = completionWindow.CompletionList.CompletionData;
@@ -219,7 +199,7 @@ namespace PL0Editor
                         List<CompletionInfo> result = host?.Find(str[0]);
                         if (result == null || result.Count == 0)
                         {
-                            completionWindow.Close();
+                            completionWindow?.Close();
                             return;
                         }
                         foreach (var i in result)
@@ -241,10 +221,7 @@ namespace PL0Editor
                             }
                         }
                         completionWindow.CompletionList.SelectItem(str);
-                        completionWindow.Closed += delegate
-                        {
-                            completionWindow = null;
-                        };
+
                         try
                         {
                             completionWindow.Show();
@@ -260,7 +237,7 @@ namespace PL0Editor
                         {
                             CodeEditor.Document.Insert(CodeEditor.SelectionStart, ")");
                             CodeEditor.SelectionStart--;
-                            e.Handled = true;
+                            BraceCompleted = e.Handled = true;
                         }
                     }
                 }
@@ -293,6 +270,14 @@ namespace PL0Editor
                     if (!char.IsLetterOrDigit(e.Text[0]))
                     {
                         completionWindow.CompletionList.RequestInsertion(e);
+                    }
+                }
+                else if (e.Text.Length == 1 && e.Text[0] == ')')
+                {
+                    if (BraceCompleted)
+                    {
+                        BraceCompleted = false;
+                        e.Handled = true;
                     }
                 }
             }
@@ -695,8 +680,6 @@ namespace PL0Editor
             }
             catch (Exception) { }
         }
-
-        private Compiler.Position Location { get; set; }
 
         private void DisplayPCode(object sender, RoutedEventArgs e)
         {

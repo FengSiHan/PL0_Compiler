@@ -13,7 +13,6 @@ namespace Compiler
         public AstType Type;
         public AstNode Left, Right;
         public Position Location;
-        public bool Initialized;
         public int Offset;
         public AstNode()
         {
@@ -26,7 +25,6 @@ namespace Compiler
             Right = right;
             Info = info;
             Location = location;
-            Initialized = false;
         }
 
         public AstNode(AstType type, Position location, AstNode left = null, AstNode right = null, Object info = null)
@@ -36,7 +34,6 @@ namespace Compiler
             Right = right;
             Info = info;
             Location = location;
-            Initialized = false;
         }
         public override string ToString()
         {

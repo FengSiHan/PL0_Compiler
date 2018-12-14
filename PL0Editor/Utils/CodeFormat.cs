@@ -13,7 +13,26 @@ namespace PL0Editor
 {
     public partial class MainWindow
     {
-        public void TranslateExpr(AstNode Node)
+        public void FormatCode(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Temp.Clear();
+                string SourceCode = CodeEditor.Text;
+                Parser parser = new Parser();
+                var root = parser.Parse(SourceCode);
+                if (parser.GetNumofErrors() > 0)
+                {
+                    StatusContent.Text = "代码格式化之前请改正所有错误";
+                    return;
+                }
+                GenerateCode(root, null, 0);
+                Temp.Append("\n.");
+                CodeEditor.Text = Temp.ToString();
+            }
+            catch (Exception) { }
+        }
+        private void TranslateExpr(AstNode Node)
         {
             switch (Node.Type)
             {
@@ -31,8 +50,12 @@ namespace PL0Editor
                     break;
             }
         }
-        public void GenerateCode(AstNode Node, AstNode Prev, int Indent)
+        private void GenerateCode(AstNode Node, AstNode Prev, int Indent)
         {
+            if (ReferenceEquals(Node, null))
+            {
+                return;
+            }
             switch (Node.Type)
             {
                 case AstType.SubProgram:
@@ -245,26 +268,9 @@ namespace PL0Editor
                     }
                     Temp.Append($"{param[param.Count - 1].Left.Info})");
                     break;
-                default:
-                    throw new Exception($"{Node.Type}");
             }
         }
         private StringBuilder Temp;
         private string IndentString = "    ";
-        public void FormatCode(object sender, RoutedEventArgs e)
-        {
-            Temp.Clear();
-            string SourceCode = CodeEditor.Text;
-            Parser parser = new Parser();
-            var root = parser.Parse(SourceCode);
-            if (parser.GetNumofErrors() > 0)
-            {
-                StatusContent.Text = "代码格式化之前请改正所有错误";
-                return;
-            }
-            GenerateCode(root, null,0);
-            Temp.Append('.');
-            CodeEditor.Text = Temp.ToString();
-        }
     }
 }
