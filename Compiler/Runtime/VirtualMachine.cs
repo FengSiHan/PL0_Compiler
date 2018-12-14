@@ -81,6 +81,7 @@ namespace Compiler
                             Push(Pop() - tmp1);
                             break;
                         case 4:
+                            Push(Pop() * Pop());
                             break;
                         case 5:
                             tmp1 = Pop();
