@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Compiler
 {
@@ -156,11 +154,6 @@ namespace Compiler
             if (!chars.MoveNext())
             {
                 return false;
-            }
-            else if (chars.Current == '\n')
-            {
-                ++Row;
-                Col = 0;
             }
             else
             {
