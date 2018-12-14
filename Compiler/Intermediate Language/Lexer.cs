@@ -22,7 +22,13 @@ namespace Compiler
             {
                 peek = chars.Current;
                 dont_move = false;
-                if (char.IsWhiteSpace(peek))
+                if (peek == '\n')
+                {
+                    ++Row;
+                    Col = 0;
+                    continue;
+                }
+                else if (char.IsWhiteSpace(peek))
                 {
                     continue;
                 }

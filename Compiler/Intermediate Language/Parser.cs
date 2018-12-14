@@ -71,9 +71,9 @@ namespace Compiler
             }
             try
             {
-                if (HasPeriod && CurrentToken()?.TokenType != TokenType.PERIOD)
+                if (HasPeriod && tokens.MoveNext())
                 {
-                    ErrorMsg.Add("Too much code following '.'", CurrentToken()?.Location);
+                    ErrorMsg.Add("Too much code following '.'", tokens.GetLast().Location);
                 }
             }
             catch (Exception) { }
