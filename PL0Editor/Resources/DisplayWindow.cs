@@ -30,8 +30,8 @@ namespace PL0Editor
             //Left = parent.Width - Width + 100;
             //Top = 200;
             Padding = new Thickness(0);
-            this.WindowStyle = WindowStyle.None;
-            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Grid grid = new Grid();
             grid.Margin = new Thickness(0, 20, 0, 0);
 
