@@ -70,7 +70,7 @@ namespace Compiler
                     {
                         return;
                     }
-                    if (k.Tags.Count <= 1)//刚刚创建或者被引用次数为0,1
+                    if (k.Counter <= 1)//刚刚创建或者被引用次数为0,1
                     {
                         Nodes.Remove(k);
                     }
@@ -155,23 +155,8 @@ namespace Compiler
                             {
                                 throw new Exception("First argument of Assign should be Num or Var!");
                             }
-                            /*
-                            if (left.Type == DAGType.Var)
-                            {
-                                // d = d + d 
-                                // Mov d,t0
-                                // Mov d,t1
-                                // Add t0,t1,t2
-                                // Assign d,t2
-                                //至此t0,t1失效，以后对D的引用转为t1+t2,但已经失效 
-                                foreach (var k in left.Tags)
-                                {
-                                    k.CurrentValue = null;
-                                }
-                                left.Tags.Clear();
-                            }
-                            */
                             left.CurrentValue.Add(left);
+                            IncreaseCounter(left);
                         }
                         else if (CodeNode.Type == QuadrupleType.Write)
                         {
@@ -311,6 +296,7 @@ namespace Compiler
                                 case 1:
                                     break;
                                 case -1:
+                                    IncreaseCounter(Result.CurrentValue);
                                     continue;
                             }
                             bool find = false;
@@ -351,6 +337,7 @@ namespace Compiler
                                 block.ExprSet.Add(GetValue(Result));
                                 Result.CurrentValue.Add(Result);
                             }
+                            IncreaseCounter(Result.CurrentValue);
                         }
                     }
                 }
@@ -364,66 +351,72 @@ namespace Compiler
             IterativeAliveVarAnalysis();
             //完成删除死代码后进行全局公共子表达式替换
             //删除死代码
-            foreach (var block in Blocks)
+            bool work = true;
+            while (work)
             {
-                var DAG = block.DAG;
-                var Active = block.ActiveVar;
-                var deleteList = DAG.Except(Active);
-                List<DAGNode> deleteNode = new List<DAGNode>();
-                List<DAGNode> temp = new List<DAGNode>();
-                //获取对不活跃变量的赋值
-                foreach (var i in DAG)
+                work = false;
+                foreach (var block in Blocks)
                 {
-                    if (i.Type == DAGType.Assign)
+                    var DAG = block.DAG;
+                    var Active = block.ActiveVar;
+                    var deleteList = DAG.Except(Active);
+                    List<DAGNode> deleteNode = new List<DAGNode>();
+                    List<DAGNode> temp = new List<DAGNode>();
+                    //获取对不活跃变量的赋值
+                    foreach (var i in DAG)
                     {
-                        if (Active.Contains(i.Left) == false)
+                        if (i.Type == DAGType.Assign)
                         {
-                            temp.Add(i);
-                        }
-                    }
-                }
-                foreach (var i in temp)//对不活跃变量的赋值可以去掉，并且递归删除其CurrentValue
-                {
-                    DAG.Remove(i);
-                    if (i.Right?.Counter <= 1)//只有当前节点引用了这个节点，可以删除
-                    {
-                        deleteNode.Add(i.Right);
-                    }
-                }
-                Queue<DAGNode> WorkQueue = new Queue<DAGNode>();
-                foreach (var i in deleteNode)
-                {
-                    WorkQueue.Enqueue(i);
-                }
-                while (WorkQueue.Count != 0)
-                {
-                    var node = WorkQueue.Dequeue();
-                    if (IsExpressionNode(node))
-                    {
-                        block.ExprSet.Remove(node);
-                        if (node.Left.Counter <= 1) //只存在一个引用则删除
-                        {
-                            WorkQueue.Enqueue(node.Left);
-                        }
-                        if (node.Right.Counter <= 1)
-                        {
-                            WorkQueue.Enqueue(node.Right);
-                        }
-                        foreach (var t in node.Tags)
-                        {
-                            if (t.Type == DAGType.Temp)
+                            if (Active.Contains(i.Left) == false)
                             {
-                                DAG.Remove(t);
+                                temp.Add(i);
                             }
                         }
                     }
-                    else
+                    foreach (var i in temp)//对不活跃变量的赋值可以去掉，并且递归删除其CurrentValue
                     {
-                        DAG.Remove(node);
+                        DAG.Remove(i);
+                        if (i.Right?.Counter <= 1)//只有当前节点引用了这个节点，可以删除
+                        {
+                            deleteNode.Add(i.Right);
+                        }
+                    }
+                    Queue<DAGNode> WorkQueue = new Queue<DAGNode>();
+                    foreach (var i in deleteNode)
+                    {
+                        WorkQueue.Enqueue(i);
+                    }
+                    if (WorkQueue.Count != 0) work = true;
+                    while (WorkQueue.Count != 0)
+                    {
+                        var node = WorkQueue.Dequeue();
+                        if (IsExpressionNode(node))
+                        {
+                            block.ExprSet.Remove(node);
+                            ReduceCounter(node);
+                            if (node.Left.Counter <= 1) //只存在一个引用则删除
+                            {
+                                WorkQueue.Enqueue(node.Left);
+                            }
+                            if (node.Right.Counter <= 1)
+                            {
+                                WorkQueue.Enqueue(node.Right);
+                            }
+                            foreach (var t in node.Tags)
+                            {
+                                if (t.Type == DAGType.Temp)
+                                {
+                                    DAG.Remove(t);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            DAG.Remove(node);
+                        }
                     }
                 }
             }
-
             return;
             IterativeAvailableExpressionAnalysis();
 
@@ -1407,6 +1400,7 @@ namespace Compiler
             {
                 node.Host.DAG.Remove(tmp);
             }
+            ReduceCounter(tmp.CurrentValue);
             /*
             if (node.Type == DAGType.Var)
             {
@@ -2250,7 +2244,7 @@ namespace Compiler
                 QuadrupleNode node = CodeSeg[block.End];
                 DAGNode left = GetNode(node.Arg1, Nodes, block), right = GetNode(node.Arg2, Nodes, block);
 
-                //表达式恒真恒假不进行优化，在Parse中实现 warning
+                //TODO 表达式恒真恒假不进行优化，在Parse中实现 warning
 
                 if (false && GetValue(left) == GetValue(right))
                 {
@@ -2389,6 +2383,7 @@ namespace Compiler
             foreach (var i in deleteList)
             {
                 Nodes.Remove(i);
+                ReduceCounter(i);
             }
         }
         #endregion
@@ -2855,6 +2850,39 @@ namespace Compiler
             }
             return true;
         }
+
+        private void IncreaseCounter(DAGNode node)
+        {
+            try
+            {
+                if (node.Type == DAGType.Var || node.Type == DAGType.Temp || node.Type == DAGType.Num)
+                {
+                    ++node.Counter;
+                    return;
+                }
+                ++node.Counter;
+                IncreaseCounter(node.Left);
+                IncreaseCounter(node.Right);
+            }
+            catch (Exception) { }
+        }
+
+        private void ReduceCounter(DAGNode node)
+        {
+            try
+            {
+                if (node.Type == DAGType.Var || node.Type == DAGType.Temp || node.Type == DAGType.Num)
+                {
+                    --node.Counter;
+                    return;
+                }
+                --node.Counter;
+                ReduceCounter(node.Left);
+                ReduceCounter(node.Right);
+            }
+            catch (Exception) { }
+        }
+
         private List<QuadrupleNode> CodeSeg;
         private List<QuadrupleNode> VarSeg;
         private List<Block> Blocks;
