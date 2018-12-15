@@ -91,16 +91,13 @@ namespace PL0Editor
         {
             IHighlightingDefinition customHighlighting;
             Stream stream;
-            stream = new FileStream("../../PL0.xshd", FileMode.Open);
-            if (stream is null)
+            try
             {
+                stream = new FileStream("../../PL0.xshd", FileMode.Open);
+            }
+            catch (Exception)
+            {   
                 stream = new FileStream("PL0.xshd", FileMode.Open);
-                if (stream == null)
-                {
-                    MessageBox.Show("PL0 highlight ruleset is lost");
-                    this.Close();
-                    return;
-                }
             }
             using (XmlReader reader = new XmlTextReader(stream))
             {
