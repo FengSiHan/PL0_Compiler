@@ -45,7 +45,7 @@ namespace PL0Editor
 
                 CodeEditor.ShowLineNumbers = true;
                 CodeEditor.Options.HighlightCurrentLine = true;
-                CodeEditor.Options.ConvertTabsToSpaces = true;
+                CodeEditor.Options.ConvertTabsToSpaces = false;
                 CodeEditor.Text = "\n.";
 
                 //后台代码检查线程
