@@ -933,8 +933,8 @@ namespace Compiler
                         TraversalExpr(env, stmt.Right, stmt, false);
                         break;
                     case AstType.Call:
-                        //注意不一定只能call同级分程序
-                        id = env.Find((string)stmt.Info);
+                        //注意只能call同级分程序
+                        id = env.FindNoRecursion((string)stmt.Info);
                         if (id == null)
                         {
                             ErrorMsg.Add($"Unknown Token '{stmt.Info}',it needs declaring", stmt.Location);
