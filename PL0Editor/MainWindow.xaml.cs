@@ -277,6 +277,11 @@ namespace PL0Editor
                         e.Handled = true;
                     }
                 }
+                else if (e.Text.Length == 1 && e.Text[0] == ':')
+                {
+                    CodeEditor.Document.Insert(CodeEditor.SelectionStart, ":=");
+                    e.Handled = true;
+                }
             }
             catch (Exception) { }
         }
