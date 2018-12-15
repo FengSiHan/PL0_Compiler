@@ -670,7 +670,7 @@ namespace Compiler
             {
                 if ((char)CurrentToken().Content == '-')
                 {
-                    AstNode l_node = new AstNode(AstType.Minus, CurrentToken().Location)
+                    AstNode l_node = new AstNode(AstType.Expr, CurrentToken().Location)
                     {
                         Left = new AstNode(AstType.NUM, null, null, 0, CurrentToken().Location),
                         Info = CurrentToken().Content
