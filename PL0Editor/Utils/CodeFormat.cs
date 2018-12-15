@@ -15,25 +15,23 @@ namespace PL0Editor
     {
         public void FormatCode(object sender, RoutedEventArgs e)
         {
-            Temp.Clear();
-            string SourceCode = CodeEditor.Text;
-            Parser parser = new Parser();
-            var root = parser.Parse(SourceCode);
-            if (parser.GetNumofErrors() > 0)
-            {
-                StatusContent.Text = "代码格式化之前请改正所有错误";
-                return;
-            }
-            GenerateCode(root, null, 0);
-            Temp.Append("\n.");
-            CodeEditor.Text = Temp.ToString();
+
             try
             {
-                
+                Temp.Clear();
+                string SourceCode = CodeEditor.Text;
+                Parser parser = new Parser();
+                var root = parser.Parse(SourceCode);
+                if (parser.GetNumofErrors() > 0)
+                {
+                    StatusContent.Text = "代码格式化之前请改正所有错误";
+                    return;
+                }
+                GenerateCode(root, null, 0);
+                Temp.Append("\n.");
+                CodeEditor.Text = Temp.ToString();
             }
-            catch (Exception ex) {
-
-            }
+            catch (Exception) { }
         }
         private void TranslateExpr(AstNode Node)
         {
