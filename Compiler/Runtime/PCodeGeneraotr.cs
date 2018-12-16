@@ -50,8 +50,10 @@ namespace Compiler
                 {
                     case PCode.EXP:
                     case PCode.HALT:
-                    case PCode.WRT:
                         sb.Append("\n");
+                        break;
+                    case PCode.WRT:
+                        sb.Append("0, 0\n");
                         break;
                     default:
                         switch (i.DataType)
