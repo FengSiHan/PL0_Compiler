@@ -348,8 +348,6 @@ namespace Compiler
         WRT,
         HALT,
         EXP,
-        MOD,
-        NOT, //^
         OPR
     }
 

@@ -88,7 +88,10 @@ namespace Compiler
                             Push(Pop() / tmp1);
                             break;
                         case 6:
-                            Push(Pop() & 1);
+                            Push(Math.Abs(Pop()) & 1);
+                            break;
+                        case 7:
+                            Push(~(Math.Abs(Pop()) & 1));
                             break;
                         case 8:
                             PushBoolean(Pop() == Pop());
@@ -151,10 +154,6 @@ namespace Compiler
                     {
                         Push(TempPool[cmd.Arg]);
                     }
-                    break;
-                case PCode.MOD:
-                    int tmp = Pop();
-                    Push(Math.Abs(Pop() % tmp));
                     break;
                 case PCode.RED:
                     string i;
@@ -224,9 +223,6 @@ namespace Compiler
                     {
                         Write(Pop());
                     }
-                    break;
-                case PCode.NOT:
-                    Push(Pop() ^ 1);
                     break;
             }
             ++EIP;

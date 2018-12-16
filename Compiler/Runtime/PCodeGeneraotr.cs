@@ -50,8 +50,6 @@ namespace Compiler
                 {
                     case PCode.EXP:
                     case PCode.HALT:
-                    case PCode.MOD:
-                    case PCode.NOT:
                     case PCode.WRT:
                         sb.Append("\n");
                         break;
@@ -182,39 +180,20 @@ namespace Compiler
                 Add(new PNode(PCode.JMP, (int)Node.Result, 4));
                 return;
             }
-            if (Node.Type == QuadrupleType.JO || Node.Type == QuadrupleType.JNO)
-            {
-                if (Node.Arg1 is int)
-                {
-                    Add(new PNode(PCode.LOD, (int)Node.Arg1, 2));
-                }
-                else if (Node.Arg1 is string)
-                {
-                    int arg = int.Parse(((string)Node.Arg1).Substring(1));
-                    Add(new PNode(PCode.LIT, arg, 1));
-                }
-                else
-                {
-                    var t = Node.Arg1 as QuadrupleNode;
-                    Add(new PNode(PCode.LOD, t.Offset, 3) { Offset = t.AddressOffset, Level = t.Level });
-                }
-                Add(new PNode(PCode.LIT, 2, 1));
-                Add(new PNode(PCode.MOD));
-                if (Node.Type == QuadrupleType.JO)
-                {
-                    Add(new PNode(PCode.NOT));
-                }
-                Add(new PNode(PCode.JPC, (int)Node.Result, 4));
-                return;
-            }
             LoadArg(Node);
             switch (Node.Type)//根据条件选择相反的指令，因为是if False跳转
             {
+                case QuadrupleType.JNO:
+                    Add(new PNode(PCode.OPR, 6, 5));
+                    break;
+                case QuadrupleType.JO:
+                    Add(new PNode(PCode.OPR, 7, 5));
+                    break;
+                case QuadrupleType.JNE:
+                    Add(new PNode(PCode.OPR, 8, 5));
+                    break;
                 case QuadrupleType.JE:
                     Add(new PNode(PCode.OPR, 9, 5));
-                    break;
-                case QuadrupleType.JG:
-                    Add(new PNode(PCode.OPR, 13, 5));
                     break;
                 case QuadrupleType.JGE:
                     Add(new PNode(PCode.OPR, 10, 5));
@@ -225,8 +204,8 @@ namespace Compiler
                 case QuadrupleType.JLE:
                     Add(new PNode(PCode.OPR, 12, 5));
                     break;
-                case QuadrupleType.JNE:
-                    Add(new PNode(PCode.OPR, 8, 5));
+                case QuadrupleType.JG:
+                    Add(new PNode(PCode.OPR, 13, 5));
                     break;
             }
             Add(new PNode(PCode.JPC, (int)Node.Result, 4));
@@ -269,6 +248,7 @@ namespace Compiler
                 var t = Node.Arg1 as QuadrupleNode;
                 Add(new PNode(PCode.LOD, t.Offset, 3) { Offset = t.AddressOffset, Level = t.Level });
             }
+            if (Node.Arg2 == null) return;
             if (Node.Arg2 is int)
             {
                 Add(new PNode(PCode.LOD, (int)Node.Arg2, 2));
