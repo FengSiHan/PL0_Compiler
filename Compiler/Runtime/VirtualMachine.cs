@@ -154,7 +154,7 @@ namespace Compiler
                     break;
                 case PCode.MOD:
                     int tmp = Pop();
-                    Push(Pop() % tmp);
+                    Push(Math.Abs(Pop() % tmp));
                     break;
                 case PCode.RED:
                     string i;

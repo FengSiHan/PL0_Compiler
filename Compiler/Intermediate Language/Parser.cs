@@ -519,9 +519,13 @@ namespace Compiler
                                     break;
                                 }
                             }
-                            else
+                            else if (CurrentToken().TokenType == TokenType.SEMICOLON)
                             {
-                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' follow read", CurrentToken().Location);
+                                throw new SyntaxErrorException("Missing ')' at the end of write function", Line);
+                            }
+                            else if (CurrentToken().TokenType != TokenType.COMMA)
+                            {
+                                throw new SyntaxErrorException($"Unexpected token '{CurrentToken().Content}' in write argument list", CurrentToken().Location);
                             }
                         }
                         while (tokens.MoveNext() && CurrentToken().TokenType != TokenType.BRACKET && Keys.Contains(CurrentToken().Content) == false);
@@ -678,6 +682,7 @@ namespace Compiler
                     tokens.MoveNext();
                     l_node.Right = Term();
                     node.Left = l_node;
+                    l_node.Offset = -1228;
                 }
                 else if ((char)CurrentToken().Content == '+') tokens.MoveNext();// + NUM 可以忽略
                 else
@@ -732,6 +737,7 @@ namespace Compiler
             {
                 CheckExpectToken(Token.LBRACKET);
                 AstNode node = Expr();
+                node.Offset = -1220;
                 CheckExpectToken(Token.RBRACKET);
                 return node;
             }
@@ -924,7 +930,7 @@ namespace Compiler
                         }
                         else if (id.Type != AstType.Var)
                         {
-                            ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not variable", id.Location);
+                            ErrorMsg.Add($"'{id.Info}' can't be assigned,it's not a variable", id.Location);
                         }
                         else
                         {

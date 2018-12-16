@@ -33,7 +33,7 @@ namespace PL0Editor
             }
             catch (Exception) { }
         }
-        private void TranslateExpr(AstNode Node)
+        private void TranslateExpr(AstNode Node, int Level = 0)
         {
             switch (Node.Type)
             {
@@ -45,9 +45,17 @@ namespace PL0Editor
                     Temp.Append(Node.Info);
                     break;
                 default:
-                    TranslateExpr(Node.Left);
+                    if (Node.Offset == -1228)
+                    {
+                        Temp.Append('-');
+                        TranslateExpr(Node.Right, Level + 1);
+                        return;
+                    }
+                    if (Node.Offset == -1220) Temp.Append('(');
+                    TranslateExpr(Node.Left, Level + 1);
                     Temp.Append($" {Node.Info} ");
-                    TranslateExpr(Node.Right);
+                    TranslateExpr(Node.Right, Level + 1);
+                    if (Node.Offset == -1220) Temp.Append(')');
                     break;
             }
         }
@@ -183,9 +191,9 @@ namespace PL0Editor
                     }
                     Temp.Append(" then\n");
                     GenerateCode(Node.Left.Right, Node, Indent + 1);
-                    Temp.Append('\n');
                     if (Node.Right != null)
                     {
+                        Temp.Append("\n");
                         for (int i = 0; i < Indent; ++i)
                         {
                             Temp.Append(IndentString);
@@ -275,6 +283,6 @@ namespace PL0Editor
             }
         }
         private StringBuilder Temp;
-        private string IndentString = "    ";
+        private string IndentString = "\t";
     }
 }
