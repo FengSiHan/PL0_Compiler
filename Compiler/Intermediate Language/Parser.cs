@@ -23,12 +23,12 @@ namespace Compiler
         public Parser()
         {
             Keys = new HashSet<string>(new string[] { "procedure", "if", "while", "call", "begin", "repeat", "read", "write", "var", "const", "end" });
-            SkipControlList = new List<Token>();
             Env.Initial();
         }
 
         public AstNode Parse(string Text)
         {
+            SkipControlList = new List<Token>() { Token.PROC, Token.IF, Token.WHILE, Token.CALL, Token.BEGIN, Token.REPEAT, Token.READ, Token.WRITE, Token.VAR, Token.CONST };
             var lexer = new Lexer(Text);
             tokens = new Enumerator<Token>(lexer.Scan().GetEnumerator());
             ErrorMsg = lexer.ErrorMsg;
@@ -37,7 +37,6 @@ namespace Compiler
                 ErrorMsg.Add("Expect '.' at the end of code", CurrentToken()?.Location);
                 return null;
             }
-            SkipControlList.Clear();
             bool HasPeriod = false;
             try
             {
@@ -282,17 +281,16 @@ namespace Compiler
 
                     AstNode node = new AstNode(AstType.Var, new AstNode(AstType.VarID, null, null, peek.Content, peek.Location), location: peek.Location); //Left is Node of ID,Right is its value
 
+                    Definition.Add(node);
                     if (!tokens.MoveNext()) break;
                     Token next = CurrentToken();
                     if (next == null || next.TokenType == TokenType.SEMICOLON)
                     {
-                        Definition.Add(node);
                         break;
                     }
 
                     if (next.TokenType == TokenType.COMMA)
                     {
-                        Definition.Add(node);
                         if (!tokens.MoveNext()) break;
                         else if (CurrentToken().TokenType != TokenType.ID)
                         {
@@ -307,8 +305,7 @@ namespace Compiler
                             ErrorMsg.Add("var ID can't be assigned when declared", next.Location);
                         }
                         else break;
-
-                        Definition.Add(node);
+                        
                         if (!tokens.MoveNext()) break;
 
                         while (CurrentToken()?.TokenType != TokenType.COMMA
@@ -330,7 +327,6 @@ namespace Compiler
                         {
                             ErrorMsg.Add($"var ID can't be assigned when declared", next.Location);
                         }
-                        Definition.Add(node);
                         if (!tokens.MoveNext()) break;
 
                         while (CurrentToken()?.TokenType != TokenType.COMMA
