@@ -12,6 +12,7 @@ namespace Compiler
         public PCodeGeneraotr()
         {
             GetIL = new ILGenerator();
+            Address = new Dictionary<int, int>();
             Programs = new List<PNode>();
         }
 
@@ -85,10 +86,11 @@ namespace Compiler
 
         private void GetPCode()
         {
+            Address.Clear();
             Programs.Clear();
-            foreach (var i in CodeSeg)
+            for (int i =0; i < CodeSeg.Count; ++i)
             {
-                Translate(i);
+                Translate(CodeSeg[i], i);
             }
             foreach (var i in Programs)
             {
@@ -107,7 +109,7 @@ namespace Compiler
             Programs[Programs.Count - 1] = new PNode(PCode.HALT);
         }
 
-        private void Translate(QuadrupleNode Node)
+        private void Translate(QuadrupleNode Node, int Index)
         {
             Node.Start = Programs.Count;
             int typeV = Convert.ToInt32(Node.Type);
@@ -120,9 +122,15 @@ namespace Compiler
             {
                 case QuadrupleType.Return:
                     Add(new PNode(PCode.EXP));
+                    Address.Add(Index + 1, Programs.Count);
                     break;
                 case QuadrupleType.Call:
-                    Add(new PNode(PCode.CAL, (int)Node.Result, 4));
+                    int a = 1;
+                    if (Address.ContainsKey((int)Node.Result))
+                    {
+                        a = Address[(int)Node.Result];
+                    }
+                    Add(new PNode(PCode.CAL, a, 4));
                     break;
                 case QuadrupleType.Add:
                 case QuadrupleType.Sub:
@@ -273,6 +281,7 @@ namespace Compiler
         }
 
         internal List<QuadrupleNode> VarSeg;
+        private Dictionary<int, int> Address;
         private List<PNode> Programs;
         private ILGenerator GetIL;
         private List<QuadrupleNode> CodeSeg;
